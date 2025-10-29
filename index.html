@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC Dash - Crypto Dashboard</title>
+    <meta http-equiv="refresh" content="0; url=frontend/index.html">
+    <link rel="canonical" href="frontend/index.html">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        a {
+            color: white;
+            text-decoration: underline;
+        }
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🪙 BTC Dash</h1>
+        <p>Đang chuyển hướng đến dashboard...</p>
+        <div class="loader"></div>
+        <p style="margin-top: 2rem; font-size: 0.9rem;">
+            <a href="frontend/index.html">Click vào đây nếu không tự động chuyển hướng</a>
+        </p>
+    </div>
+    <script>
+        // Fallback redirect after 1 second
+        setTimeout(function() {
+            window.location.href = 'frontend/index.html';
+        }, 1000);
+    </script>
+</body>
+</html>

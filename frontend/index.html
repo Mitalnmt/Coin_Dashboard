@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC Dash - Crypto Dashboard</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://unpkg.com/papaparse@5/papaparse.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="navbar">
+            <a href="index.html" class="logo">BTC Dash</a>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="chart.html">Charts</a></li>
+                <li><a href="chatbot.html">Chatbot</a></li>
+                <li><a href="forecast.html">Forecast</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Bitcoin Realtime Dashboard (Mockup)</h1>
+            <p>Monitor Bitcoin prices, analyze market trends, and get AI-powered insights in one comprehensive dashboard.</p>
+        </section>
+
+        <!-- Main Grid Layout -->
+        <div class="main-content">
+            <!-- Left Column - Main Cards -->
+            <div>
+                <!-- Cards Grid -->
+                <div class="grid grid-4">
+                    <!-- Card 1: Crypto Prices Overview -->
+                    <div class="card">
+                        <h3>📊 Latest Prices</h3>
+                        <div id="cryptoPrices" class="placeholder">
+                            <p style="color: #9ca3af;">Loading data...</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Top Gainers -->
+                    <div class="card">
+                        <h3>Top Gainers (24h)</h3>
+                        <div id="topGainers" class="placeholder">
+                            <p style="color: #9ca3af;">Loading data...</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Market Stats -->
+                    <div class="card">
+                        <h3>Market Stats (Latest)</h3>
+                        <table id="marketStats">
+                            <tr>
+                                <td class="muted">Loading...</td>
+                                <td class="accent">--</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Card 4: Sentiment & Trends -->
+                    <div class="card">
+                        <h3>Sentiment & Trends</h3>
+                        
+                        <!-- Sentiment will be loaded here -->
+                        <div id="sentiment" class="placeholder">
+                            <p style="color: #9ca3af;">Loading sentiment data...</p>
+                        </div>
+
+                        <!-- Bullet Points -->
+                        <ul class="bullet-list" id="sentimentBullets">
+                            <li>Loading market data...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <aside class="sidebar">
+                <h3>Quick Links</h3>
+                <ul class="quick-links">
+                    <li><a href="dashboard.html">📊 View Dashboard</a></li>
+                    <li><a href="chart.html">📉 View Charts</a></li>
+                    <li><a href="chatbot.html">🤖 Ask with AI</a></li>
+                    <li><a href="forecast.html">🔮 Price Predictions</a></li>
+                </ul>
+
+                <h3 class="mt-24">Notes</h3>
+                <p class="muted">
+                    This is a mockup interface demonstrating the layout and design for a Bitcoin dashboard. 
+                    All data shown is placeholder content for demonstration purposes only.
+                </p>
+                <p class="muted">
+                    Real-time data integration and interactive charts will be implemented in future versions.
+                </p>
+            </aside>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Multi-Symbol Crypto Dashboard — Live Data</p>
+    </footer>
+    
+    <script>
+        let allData = [];
+        let latestData = {};
+        
+        // Load CSV data
+        function loadData() {
+            // Try multiple paths for different deployment scenarios
+            const csvPaths = [
+                '../data/dataset_total_clean.csv',  // Local development
+                'data/dataset_total_clean.csv',     // GitHub Pages from root
+                '/BTC_BIT-main/data/dataset_total_clean.csv'  // GitHub Pages with repo name
+            ];
+            
+            let currentPathIndex = 0;
+            
+            function tryLoadCSV() {
+                const path = csvPaths[currentPathIndex];
+                Papa.parse(path, {
+                    download: true,
+                    header: true,
+                    dynamicTyping: true,
+                    complete: (results) => {
+                        allData = results.data.filter(row => row.symbol && row.Close && row.Date);
+                        processData();
+                        displayData();
+                    },
+                    error: (error) => {
+                        console.error(`Error loading CSV from ${path}:`, error);
+                        currentPathIndex++;
+                        if (currentPathIndex < csvPaths.length) {
+                            tryLoadCSV();
+                        } else {
+                            document.getElementById('marketStats').innerHTML = 
+                                '<tr><td colspan="2" style="color: var(--danger);">Error loading data. Please refresh.</td></tr>';
+                        }
+                    }
+                });
+            }
+            
+            tryLoadCSV();
+        }
+        
+        // Process data to get latest for each symbol
+        function processData() {
+            const symbols = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP'];
+            
+            symbols.forEach(symbol => {
+                const symbolData = allData.filter(row => row.symbol === symbol);
+                if (symbolData.length > 0) {
+                    // Sort by date and get latest
+                    symbolData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                    latestData[symbol] = symbolData[0];
+                }
+            });
+        }
+        
+        // Display processed data
+        function displayData() {
+            displayMarketStats();
+            displayCryptoPrices();
+            displayTopGainers();
+            displaySentiment();
+        }
+        
+        // Display market stats for BTC (primary)
+        function displayMarketStats() {
+            const btc = latestData['BTC'];
+            if (!btc) return;
+            
+            // Get previous day data
+            const btcData = allData.filter(row => row.symbol === 'BTC');
+            btcData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+            
+            const lastPrice = btc.Close;
+            const prevPrice = btcData[1] ? btcData[1].Close : lastPrice;
+            const change24h = ((lastPrice - prevPrice) / prevPrice * 100).toFixed(2);
+            const volume24h = btc.Volume ? (btc.Volume / 1e9).toFixed(2) + 'B' : 'N/A';
+            
+            document.getElementById('marketStats').innerHTML = `
+                <tr>
+                    <td class="muted">Symbol</td>
+                    <td class="accent">BTC</td>
+                </tr>
+                <tr>
+                    <td class="muted">Price</td>
+                    <td class="accent">$${lastPrice.toFixed(2)}</td>
+                </tr>
+                <tr>
+                    <td class="muted">24h Change</td>
+                    <td class="${change24h >= 0 ? 'accent' : 'danger'}">${change24h >= 0 ? '+' : ''}${change24h}%</td>
+                </tr>
+                <tr>
+                    <td class="muted">24h Volume</td>
+                    <td>$${volume24h}</td>
+                </tr>
+                <tr>
+                    <td class="muted">Date</td>
+                    <td>${new Date(btc.Date).toLocaleDateString()}</td>
+                </tr>
+            `;
+        }
+        
+        // Display crypto prices overview
+        function displayCryptoPrices() {
+            const symbols = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP'];
+            let html = '<table style="width: 100%;">';
+            
+            symbols.forEach(symbol => {
+                const data = latestData[symbol];
+                if (data) {
+                    const price = data.Close ? data.Close.toFixed(2) : 'N/A';
+                    html += `
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 8px 0;"><strong>${symbol}</strong></td>
+                            <td style="text-align: right; color: var(--accent);">$${price}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            html += '</table>';
+            document.getElementById('cryptoPrices').innerHTML = html;
+        }
+        
+        // Display top gainers
+        function displayTopGainers() {
+            const symbols = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP'];
+            const changes = [];
+            
+            symbols.forEach(symbol => {
+                const data = latestData[symbol];
+                if (!data) return;
+                
+                const symbolData = allData.filter(row => row.symbol === symbol);
+                symbolData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                
+                if (symbolData.length > 1) {
+                    const current = symbolData[0].Close;
+                    const previous = symbolData[1].Close;
+                    const change = ((current - previous) / previous * 100);
+                    
+                    changes.push({
+                        symbol: symbol,
+                        change: change,
+                        price: current
+                    });
+                }
+            });
+            
+            // Sort by change descending
+            changes.sort((a, b) => b.change - a.change);
+            
+            let html = '<table style="width: 100%;">';
+            changes.slice(0, 3).forEach(item => {
+                html += `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 8px 0;"><strong>${item.symbol}</strong></td>
+                        <td style="text-align: right; color: ${item.change >= 0 ? 'var(--accent)' : 'var(--danger)'};">
+                            ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</table>';
+            document.getElementById('topGainers').innerHTML = html;
+        }
+        
+        // Display sentiment
+        function displaySentiment() {
+            const btc = latestData['BTC'];
+            if (!btc) return;
+            
+            // Get sentiment data from dataset
+            const sentiment = btc.sentiment_mix || 50;
+            const fearGreed = btc.fear_greed_index || 50;
+            const trendScore = btc.google_trend_score || 0;
+            const pctChange = btc.pct_change || 0;
+            const volume = btc.Volume || 0;
+            
+            // Calculate trend labels
+            const sentimentLabel = sentiment >= 60 ? 'Bullish' : sentiment >= 40 ? 'Neutral' : 'Bearish';
+            const fearGreedLabel = fearGreed >= 75 ? 'Extreme Greed' : 
+                                   fearGreed >= 55 ? 'Greed' : 
+                                   fearGreed >= 45 ? 'Neutral' : 
+                                   fearGreed >= 25 ? 'Fear' : 'Extreme Fear';
+            
+            // Generate sentiment bullets based on data
+            const bullets = [];
+            if (pctChange > 2) {
+                bullets.push(`📈 Strong bullish momentum (+${pctChange.toFixed(2)}%)`);
+            } else if (pctChange > 0) {
+                bullets.push(`📊 Positive price movement (+${pctChange.toFixed(2)}%)`);
+            } else if (pctChange < -2) {
+                bullets.push(`📉 Significant decline (${pctChange.toFixed(2)}%)`);
+            } else if (pctChange < 0) {
+                bullets.push(`⚠️ Slight bearish pressure (${pctChange.toFixed(2)}%)`);
+            }
+            
+            if (fearGreed >= 70) {
+                bullets.push(`💰 Market sentiment: Extreme Greed`);
+            } else if (fearGreed >= 50) {
+                bullets.push(`📊 Market sentiment: Neutral to Greedy`);
+            } else {
+                bullets.push(`🎯 Market sentiment: Fear territory`);
+            }
+            
+            if (trendScore > 80) {
+                bullets.push(`🔥 High Google search interest`);
+            } else if (trendScore > 50) {
+                bullets.push(`📱 Moderate search interest`);
+            } else {
+                bullets.push(`📉 Lower search interest`);
+            }
+            
+            // Update sentiment display
+            document.getElementById('sentiment').innerHTML = `
+                <div class="mb-16">
+                    <div class="muted">Sentiment Mix: <strong>${sentimentLabel}</strong></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(Math.max(sentiment, 0), 100)}%"></div>
+                    </div>
+                    <div class="muted">${sentiment.toFixed(1)}%</div>
+                </div>
+                <div class="mb-16">
+                    <div class="muted">Fear & Greed Index: <strong>${fearGreedLabel}</strong></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill trends" style="width: ${Math.min(Math.max(fearGreed, 0), 100)}%"></div>
+                    </div>
+                    <div class="muted">${fearGreed.toFixed(1)}%</div>
+                </div>
+                <div class="mb-16">
+                    <div class="muted">Google Trend Score</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(Math.max(trendScore, 0), 100)}%; background: linear-gradient(90deg, #22c55e, #60a5fa);"></div>
+                    </div>
+                    <div class="muted">${trendScore.toFixed(1)}%</div>
+                </div>
+            `;
+            
+            // Update bullet points
+            const bulletsList = bullets.map(bullet => `<li>${bullet}</li>`).join('');
+            document.getElementById('sentimentBullets').innerHTML = bulletsList;
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+    </script>
+</body>
+</html>

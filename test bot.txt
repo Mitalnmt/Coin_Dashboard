@@ -1,0 +1,117 @@
+1) Chạy Ollama (bắt buộc)
+Mở PowerShell 1:
+Kiểm tra model: ollama list
+Nếu chưa có: ollama pull llama3
+Chạy server: ollama serve (giữ cửa sổ này mở)
+2) Chạy Flask backend
+Mở PowerShell 2:
+cd ai-backend-flask
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+copy env.example .env
+python app.py
+Test nhanh:
+PowerShell: Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:5000/chat" -ContentType "application/json" -Body '{"message":"Hello from Flask"}'
+Hoặc dùng file tiện dụng:
+.\ai-backend-flask\start-all.bat (tự mở Flask và ngrok ở bước 3)
+3) Mở public tunnel (ngrok)
+Mở PowerShell 3:
+ngrok http 5000
+Copy URL https (ví dụ https://abc123.ngrok-free.app)
+4) Kết nối frontend
+Vanilla HTML (GitHub Pages hoặc chạy file):
+Mở frontend-vanilla/index.html trong trình duyệt
+Điền ô “API Base URL” bằng URL ngrok ở bước 3 (hoặc sửa frontend-vanilla/script.js biến API_BASE)
+Gõ tin nhắn và gửi
+Next.js:
+PowerShell: cd next-ai
+npm i
+copy env.local.example .env.local
+Mở .env.local và đặt NEXT_PUBLIC_BACKEND_BASE=https://<url-ngrok>
+npm run dev
+Mở http://localhost:3001
+5) Kiểm thử nhanh qua tunnel
+PowerShell:
+Invoke-RestMethod -Method Post -Uri "https://<url-ngrok>/chat" -ContentType "application/json" -Body '{"message":"Hello from the Internet"}'
+Nếu muốn, tôi có thể chạy thử các lệnh test giúp bạn (bạn chỉ cần xác nhận đã cài ngrok và Ollama).
+
+## 🧩 **1️⃣ Test nhận dạng biểu đồ từ manifest.json**
+
+| Câu hỏi                                     | Kỳ vọng phản hồi                                        |
+| ------------------------------------------- | ------------------------------------------------------- |
+| “Cho mình xem biểu đồ giá BTC.”             | → Hiện ảnh `data/BTC/pic/area_close.png` (Price trend). |
+| “Hiển thị biểu đồ khối lượng ETH.”          | → Hiện ảnh `data/ETH/pic/bar_weekly_volume.png`.        |
+| “Biểu đồ funding rate của BNB đâu?”         | → Hiện ảnh `scatter_funding_vs_close.png`.              |
+| “Cho tôi xem biểu đồ độ biến động của XRP.” | → Hiện ảnh `hist_log_return.png`.                       |
+| “Tỷ trọng các yếu tố trong SOL là gì?”      | → Hiện ảnh `pie_features_scaled.png`.                   |
+
+---
+
+## 📊 **2️⃣ Test hiểu dữ liệu CSV (nếu bạn bật đọc dataset_scaled_total.csv)**
+
+| Câu hỏi                                              | Kỳ vọng                                          |
+| ---------------------------------------------------- | ------------------------------------------------ |
+| “Giá trung bình của BTC trong dataset là bao nhiêu?” | → Trả con số trung bình từ CSV.                  |
+| “Volume trung bình của ETH là bao nhiêu?”            | → Trả ra giá trị `mean(Volume)` của ETH.         |
+| “Funding rate trung bình của BNB là gì?”             | → Trả giá trị `mean(funding_Rate)` từ dữ liệu.   |
+| “So sánh hash rate của BTC và ETH.”                  | → Trả nhận xét kèm số liệu hash_rate trung bình. |
+| “Sentiment mix của XRP có cao không?”                | → Dùng cột `sentiment_mix` để trả insight.       |
+
+---
+
+## 🧠 **3️⃣ Test hiểu câu hỏi phân tích bằng AI (Gemini)**
+
+| Câu hỏi                                                          | Kỳ vọng                                       |
+| ---------------------------------------------------------------- | --------------------------------------------- |
+| “Theo bạn, trong 5 đồng coin này, coin nào biến động mạnh nhất?” | → AI tổng hợp từ volatility hoặc log_return.  |
+| “Từ dữ liệu này, xu hướng giá BTC trong 3 tháng qua là gì?”      | → Gemini trả phân tích tăng/giảm.             |
+| “Funding rate dương có ảnh hưởng gì đến giá không?”              | → Gemini trả lời khái niệm + liên hệ dữ liệu. |
+| “So sánh sentiment mix giữa BTC và ETH.”                         | → Gemini tổng hợp cảm xúc thị trường.         |
+| “Theo biểu đồ, coin nào có volume ổn định nhất?”                 | → Trả lời dựa vào bar_weekly_volume.          |
+
+---
+
+## 💬 **4️⃣ Test hội thoại tự nhiên**
+
+| Câu hỏi                                        | Kỳ vọng                                                |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| “Hello AI, hôm nay crypto có gì mới không?”    | → AI trả lời thân thiện, tự động thêm context dữ liệu. |
+| “Cho xem tất cả biểu đồ của ETH.”              | → Hiển thị toàn bộ 5 biểu đồ ETH từ manifest.          |
+| “Tổng hợp nhanh xu hướng thị trường hiện nay.” | → AI tóm tắt các coin từ dữ liệu tổng.                 |
+| “Làm ơn vẽ heatmap tương quan giữa các coin.”  | → AI trả lời text (vì heatmap có thể không có ảnh).    |
+| “BTC có đang bullish không?”                   | → Gemini suy luận từ funding rate và fear_greed_index. |
+
+---
+
+## 🧮 **5️⃣ Test logic hiển thị và tính năng phụ**
+
+| Hành động                     | Kỳ vọng                                                     |
+| ----------------------------- | ----------------------------------------------------------- |
+| Gõ câu trống                  | → Không gửi request.                                        |
+| Nhập liên tục 3 câu hỏi nhanh | → Không bị crash, AI trả lần lượt.                          |
+| Refresh trang                 | → Lịch sử chat vẫn còn nhờ `localStorage`.                  |
+| Bấm “🗑 Xóa lịch sử”          | → Toàn bộ chat box rỗng.                                    |
+| Mạng yếu (simulate slow 3G)   | → Hiện thông báo “🔍 Đang phân tích dữ liệu, chờ chút nhé…” |
+
+---
+
+## 🧩 **6️⃣ Test lỗi / biên kiểm**
+
+| Câu hỏi                           | Kỳ vọng                                                     |
+| --------------------------------- | ----------------------------------------------------------- |
+| “Cho xem biểu đồ DOGE.”           | → Trả “Không tìm thấy biểu đồ cho coin này.”                |
+| “dataset có cột nào?”             | → Gemini liệt kê các cột (Open, High, Low, Close, Volume…). |
+| “google_trend_score nghĩa là gì?” | → AI giải thích ý nghĩa chỉ số.                             |
+
+---
+
+## ⚙️ **7️⃣ Bonus – test hiểu nhiều ngôn ngữ**
+
+| Câu hỏi                              | Kỳ vọng                          |
+| ------------------------------------ | -------------------------------- |
+| “Show BTC price chart.”              | → Vẫn hiện ảnh đúng.             |
+| “Hãy hiển thị volume chart of ETH.”  | → Hoạt động bình thường.         |
+| “So sánh hash rate giữa BTC và ETH.” | → Trả phân tích đúng tiếng Việt. |
+
+---

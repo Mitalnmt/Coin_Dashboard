@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot - BTC Dash</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Marked.js for markdown processing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+    <!-- PapaParse for CSV parsing (optional data queries) -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        .chat-messages {
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .message.user {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        .message.bot {
+            background: #e9ecef;
+            color: #333;
+            margin-right: auto;
+        }
+        .message.loading {
+            background: #e9ecef;
+            color: #666;
+            font-style: italic;
+        }
+        .chat-input textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .chat-input button {
+            margin-top: 10px;
+            padding: 10px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .chat-input button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+        .chat-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        /* Markdown styling for chat messages */
+        .message h1, .message h2, .message h3, .message h4, .message h5, .message h6 {
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+        }
+        .message h1 { font-size: 1.5em; }
+        .message h2 { font-size: 1.3em; }
+        .message h3 { font-size: 1.2em; }
+        
+        .message p {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+        
+        .message ul, .message ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        
+        .message li {
+            margin: 4px 0;
+        }
+        
+        .message code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .message pre {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .message pre code {
+            background: none;
+            padding: 0;
+        }
+        
+        .message blockquote {
+            border-left: 4px solid #007bff;
+            margin: 10px 0;
+            padding-left: 15px;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .message strong {
+            font-weight: bold;
+        }
+        
+        .message em {
+            font-style: italic;
+        }
+        
+        .message a {
+            color: #007bff;
+            text-decoration: underline;
+        }
+        
+        .message table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .message th, .message td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .message th {
+            background: rgba(0, 0, 0, 0.05);
+            font-weight: bold;
+        }
+        
+        /* New Layout Styles */
+        .main-content {
+            display: flex;
+            height: calc(100vh - 200px);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .left-panel {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-style: italic;
+            border: 2px dashed #ddd;
+        }
+        
+        .chat-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-panel .card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            max-height: none;
+            min-height: 400px;
+        }
+        
+        /* Chat Effects and Animations */
+        .message {
+            animation: slideIn 0.3s ease-out;
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .message.user {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        .message.bot {
+            animation: slideInLeft 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            max-width: 80px;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #666;
+            border-radius: 50%;
+            animation: typingDot 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dot:nth-child(3) { animation-delay: 0s; }
+        
+        @keyframes typingDot {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        /* Message hover effects */
+        .message:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        /* Send button animation */
+        .chat-input button {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chat-input button:active {
+            transform: scale(0.95);
+        }
+        
+        .chat-input button:disabled {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        /* Utility row for actions */
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+        .chat-actions button.small {
+            padding: 6px 10px;
+            font-size: 12px;
+            background: #dc3545;
+        }
+        .chat-actions button.small:hover:not(:disabled) { background: #b02a37; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="navbar">
+            <a href="index.html" class="logo">BTC Dash</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="chart.html">Charts</a></li>
+                <li><a href="chatbot.html" class="active">Chatbot</a></li>
+                <li><a href="forecast.html">Forecast</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <h1>AI Chatbot - Gemini Assistant</h1>
+        
+        <!-- Main Chat Layout -->
+        <div class="main-content">
+            <!-- Left Panel (Empty for now) -->
+            <div class="left-panel">
+                <p>Panel này sẽ được thêm tính năng sau</p>
+            </div>
+            
+            <!-- Chat Panel (2/3 of screen) -->
+            <div class="chat-panel">
+                <div class="card">
+                    <h3>AI Assistant Chat</h3>
+                    
+                    <!-- Error Message -->
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
+                    
+                    <!-- Chat Messages -->
+                        <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Bot Welcome Message -->
+                            <div class="message bot">
+                                <h3>Chào mấy coin thủ nhá! 🚀</h3>
+                                <p>Tôi có thể giúp bạn:</p>
+                                <ul>
+                                    <li><strong>Phân tích</strong> giá crypto</li>
+                                    <li><em>Dự đoán</em> xu hướng thị trường</li>
+                                    <li>Giải thích các <code>chỉ số kỹ thuật</code></li>
+                                    <li>Tư vấn đầu tư</li>
+                                </ul>
+                                <p>Cần giúp gì tui giúp cho nha! 💰</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Input -->
+                        <div class="chat-input">
+                            <textarea id="messageInput" placeholder="Type your message..." rows="3"></textarea>
+                            <div class="chat-actions">
+                                <button id="sendButton" onclick="sendMessage()">Send</button>
+                                <button id="clearHistoryButton" class="small" onclick="clearHistory()" title="Xóa lịch sử chat">🗑 Xóa lịch sử</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Powered by Google Gemini API</p>
+    </footer>
+
+    <script>
+        // Backend API base (ngrok public URL)
+        const BACKEND_URL = 'https://isaiah-pretonic-tory.ngrok-free.dev';
+        
+        const SYSTEM_PROMPT = `
+Bạn là Người tư vấn tài chính hoạt động trong môi trường trình duyệt.
+Bạn KHÔNG thể chạy Python hoặc code.
+Tất cả dữ liệu đã có sẵn trong hệ thống qua 2 nguồn:
+
+1️⃣ Dữ liệu CSV tại ./data/
+   - Chứa các file dataset_{symbol}_clean.csv và dataset_{symbol}_scaled.csv.
+   - Các cột chính: Date, Open, High, Low, Close, Volume, funding_Rate, log_return, pct_change, ...
+   - Có thể truy cập bằng hàm tryComputeValueFromCSV(symbol, metric).
+
+2️⃣ Biểu đồ có trong manifest.json
+   - Dạng:
+     {
+       "BTC": { "charts": { "price_trend": "data/BTC/pic/area_close.png", ... } },
+       "ALL": { "charts": { "heatmap_correlation": "data/picture/heatmap_correlation.png" } }
+     }
+
+Hướng dẫn trả lời:
+- Nếu người dùng hỏi về dữ liệu (vd: "giá trung bình", "volume cao nhất"), trả JSON:
+  {"type":"data","symbol":"BTC","metric":"avg_close"}
+
+- Nếu người dùng hỏi về biểu đồ (vd: "vẽ biểu đồ giá", "heatmap tương quan"), trả JSON:
+  {"type":"chart","symbol":"BTC","chart":"price_trend"}
+
+- Nếu người dùng hỏi phân tích tổng quan, trả:
+  {"type":"text","content":"...phân tích chi tiết..."}
+
+Lưu ý: hãy trả lời kết hợp với việc sử dụng dữ liệu liên quan trong các file dữ liệu 
+
+⚠️ KHÔNG sinh code Python, pandas, matplotlib.
+⚠️ Không trả lời với dạng bắt người dùng đọc file, đưa ra con số đáp ứng với câu hỏi của người dùng được lấy trong dataset liên quan 
+⚠️ Luôn trả JSON hợp lệ, không có code block hoặc markdown.
+`;
+
+        
+        // Global state
+        let chatHistory = [];
+        let manifest = null; // loaded from ../data/picture/manifest.json
+        let csvData = null; // optional dataset cache
+        let contextInjected = false;
+        let systemInjected = false;
+        
+        // Allow Enter key to send message (Shift+Enter for new line)
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // On page load: load manifest, CSV (optional), and history
+        window.addEventListener('DOMContentLoaded', async () => {
+            loadHistoryFromStorage();
+            await loadManifest();
+            // Optional CSV load (non-blocking)
+            loadCSVOptional();
+            // Load per-symbol CSVs for data computations
+            loadPerSymbolCSVs();
+        });
+
+        async function loadManifest() {
+            try {
+                const res = await fetch('../data/picture/manifest.json');
+                if (!res.ok) throw new Error('Failed to load manifest.json');
+                manifest = await res.json();
+            } catch (err) {
+                console.error('Manifest load error:', err);
+            }
+        }
+
+        function loadCSVOptional() {
+            const csvUrl = '../data/dataset_scaled_total.csv';
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: (results) => { csvData = results.data; },
+                error: (error) => { console.warn('CSV load skipped/failed:', error); }
+            });
+        }
+
+        // Load individual symbol CSVs into window.csvData[symbol]
+        function loadPerSymbolCSVs() {
+            try {
+                const symbols = ['BTC','ETH','BNB','SOL','XRP'];
+                window.csvData = window.csvData || {};
+                for (const sym of symbols) {
+                    const url = `../data/${sym}/dataset_${sym}_clean.csv`;
+                    Papa.parse(url, {
+                        download: true,
+                        header: true,
+                        dynamicTyping: true,
+                        complete: (results) => { window.csvData[sym] = results.data || []; },
+                        error: () => { /* non-fatal */ }
+                    });
+                }
+            } catch {}
+        }
+
+        function saveHistoryToStorage() {
+            try {
+                const simple = chatHistory.map(m => ({ role: m.role, parts: m.parts }));
+                localStorage.setItem('chatHistory', JSON.stringify(simple));
+            } catch {}
+        }
+
+        function loadHistoryFromStorage() {
+            try {
+                const raw = localStorage.getItem('chatHistory');
+                if (!raw) return;
+                const arr = JSON.parse(raw);
+                if (!Array.isArray(arr)) return;
+                chatHistory = arr;
+                // Re-render
+                for (const msg of chatHistory) {
+                    const text = (msg.parts && msg.parts[0] && msg.parts[0].text) ? msg.parts[0].text : '';
+                    addMessage(text, msg.role === 'user' ? 'user' : 'bot');
+                }
+                contextInjected = !!arr.find(m => (m.role === 'user' && m.parts && m.parts[0] && (m.parts[0].text||'').includes('Bạn là AI hỗ trợ phân tích dữ liệu crypto.')));
+            } catch {}
+        }
+        
+        function clearHistory() {
+            chatHistory = [];
+            localStorage.removeItem('chatHistory');
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+            // Add welcome again
+            addMessage(`### Chào mấy coin thủ nhá! 🚀\n\nTôi có thể giúp bạn:\n- Phân tích giá crypto\n- Dự đoán xu hướng thị trường\n- Giải thích các \`chỉ số kỹ thuật\`\n- Tư vấn đầu tư\n\nCần giúp gì tui giúp cho nha! 💰`, 'bot');
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Disable button and clear input
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            input.value = '';
+            
+            // Add user message to chat
+            addMessage(message, 'user');
+            
+            // First, intent detection for charts or simple data queries
+            const handled = await tryHandleIntent(message);
+            if (handled) {
+                // Re-enable and save
+                sendButton.disabled = false;
+                input.focus();
+                saveHistoryToStorage();
+                return;
+            }
+
+            // Show typing indicator (custom message)
+            const typingId = addTypingIndicator();
+            
+            try {
+                // Sanitize message
+                const safeMsg = message
+                  .replace(/[`$]/g, "")
+                  .replace(/["']/g, "");
+
+                if (!safeMsg.trim()) {
+                    const chatMessages = document.getElementById('chatMessages');
+                    if (chatMessages.contains(typingId)) chatMessages.removeChild(typingId);
+                    addMessage("⚠️ Tin nhắn trống hoặc không hợp lệ.", 'bot');
+                    sendButton.disabled = false;
+                    input.focus();
+                    return;
+                }
+
+                // Build history for backend (map local history to {role, content})
+                const mappedHistory = (chatHistory || [])
+                  .map(m => {
+                      const text = (m.parts && m.parts[0] && m.parts[0].text) ? m.parts[0].text : '';
+                      if (!text) return null;
+                      if (m.role === 'user') return { role: 'user', content: text };
+                      if (m.role === 'model') return { role: 'assistant', content: text };
+                      if (m.role === 'system') return { role: 'system', content: text };
+                      return null;
+                  })
+                  .filter(Boolean)
+                  .slice(-10); // keep last 10
+
+                // Inject AI personality as system prompt
+                const systemPersona = {
+                    role: 'system',
+                    content: 'You are a professional Data Analyst Assistant. Communicate clearly with structured output. When analyzing data or charts, follow this style:\n\nInsight first\n\nShort explanation\n\nWhen needed, return output formatted in markdown'
+                };
+
+                // Call Flask/Ollama backend
+                const response = await fetch(`${BACKEND_URL}/chat`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: safeMsg,
+                        history: [systemPersona, ...mappedHistory]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Backend error ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                const botResponse = (data && typeof data.reply === 'string') ? data.reply : '';
+
+                // Parse optional JSON intent from model reply
+                let parsed = parseModelJson(botResponse);
+
+                // Simulate typing delay
+                setTimeout(() => {
+                    const chatMessages = document.getElementById('chatMessages');
+                    if (chatMessages.contains(typingId)) chatMessages.removeChild(typingId);
+
+                    let finalShown = false;
+                    if (parsed && typeof parsed === 'object' && parsed.type) {
+                        if (parsed.type === 'chart' && parsed.symbol && parsed.chart) {
+                            const sym = String(parsed.symbol).toUpperCase();
+                            const chartKey = String(parsed.chart);
+                            const symEntry = manifest && (manifest[sym] || manifest['ALL'] || manifest['BTC']);
+                            const chartPath = symEntry && symEntry.charts ? (symEntry.charts[chartKey] || null) : null;
+                            if (chartPath) {
+                                const html = `<b>${sym} - ${chartKey}</b><br><img src="${rewriteImagePath(chartPath)}" width="420">`;
+                                addMessage(html, 'bot');
+                                chatHistory.push({ role: 'model', parts: [{ text: html }] });
+                                finalShown = true;
+                            }
+                        }
+                        if (!finalShown && parsed.type === 'data' && parsed.symbol) {
+                            const sym = String(parsed.symbol).toUpperCase();
+                            const avg = tryComputeAveragePricePerSymbol(sym);
+                            if (avg != null && !isNaN(avg)) {
+                                let combined = `💹 Giá trung bình của ${sym} ≈ <b>${Number(avg).toFixed(2)}</b>`;
+                                const hasCharts = manifest && manifest[sym] && manifest[sym].charts;
+                                const priceChartPath = hasCharts ? (manifest[sym].charts['price_trend'] || null) : null;
+                                if (priceChartPath) {
+                                    combined += `\n<p style=\"margin-top:8px;\"><b>${sym} - ${chartTitle('price_trend')}</b></p>\n<img src=\"${rewriteImagePath(priceChartPath)}\" width=\"400\">`;
+                                }
+                                addMessage(combined, 'bot');
+                                chatHistory.push({ role: 'model', parts: [{ text: combined }] });
+                                finalShown = true;
+                            }
+                        }
+                        if (!finalShown && parsed.type === 'text' && parsed.content) {
+                            addMessage(`<b>AI:</b> ${String(parsed.content)}`, 'bot');
+                            chatHistory.push({ role: 'model', parts: [{ text: String(parsed.content) }] });
+                            finalShown = true;
+                        }
+                    }
+
+                    if (!finalShown) {
+                        const textOut = botResponse || '⚠️ Không có phản hồi từ AI.';
+                        addMessage(`<b>AI:</b> ${textOut}`, 'bot');
+                        chatHistory.push({ role: 'model', parts: [{ text: textOut }] });
+                    }
+
+                    saveHistoryToStorage();
+                    document.getElementById('errorMessage').style.display = 'none';
+                    sendButton.disabled = false;
+                    input.focus();
+                }, Math.random() * 600 + 400);
+
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // Remove typing indicator
+                const chatMessages = document.getElementById('chatMessages');
+                if (chatMessages.contains(typingId)) {
+                    chatMessages.removeChild(typingId);
+                }
+                
+                // Show error message with helpful details
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.innerHTML = `
+                    <strong>Error:</strong> ${error.message}<br>
+                    <small>Không thể kết nối backend. Kiểm tra Flask và ngrok (URL, CORS).</small>
+                `;
+                errorDiv.style.display = 'block';
+                
+                // Add error message to chat
+                addMessage('Xin lỗi, có lỗi khi kết nối đến API. Vui lòng kiểm tra server Flask/ngrok và thử lại.', 'bot');
+                
+                // Re-enable button
+                sendButton.disabled = false;
+                input.focus();
+            }
+        }
+        
+        function addTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = `🔍 Đang phân tích dữ liệu, chờ chút nhé…`;
+            chatMessages.appendChild(typingDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return typingDiv;
+        }
+        
+        function addMessage(text, role) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            // Process markdown for bot messages, plain text for user messages
+            if (role === 'bot') {
+                // Configure marked options for better security and formatting
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    sanitize: false,
+                    smartLists: true,
+                    smartypants: true
+                });
+                
+                // Convert markdown to HTML
+                let htmlContent = marked.parse(text);
+                // Auto-render .png links as images and keep relative paths GitHub Pages friendly
+                htmlContent = htmlContent.replace(/<a href=\"([^\"]+\.png)\"[^>]*>[^<]*<\/a>/gi, (m, p1) => {
+                    const src = rewriteImagePath(p1);
+                    return `<img src="${src}" alt="image" style="max-width: 100%; height: auto;"/>`;
+                });
+                // Also convert bare URLs ending with .png present as text
+                htmlContent = htmlContent.replace(/(https?:[^\s)]+\.png)/gi, (m) => {
+                    const src = rewriteImagePath(m);
+                    return `<img src="${src}" alt="image" style="max-width: 100%; height: auto;"/>`;
+                });
+                messageDiv.innerHTML = htmlContent;
+            } else {
+                // For user messages, keep as plain text for security
+                messageDiv.textContent = text;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        // Robustly parse model output that may include fenced code blocks like ```json ... ```
+        function parseModelJson(text) {
+            if (!text || typeof text !== 'string') return null;
+            let cleaned = text.trim();
+            // Remove markdown code fences and language hints
+            cleaned = cleaned.replace(/```\s*json\s*/gi, '').replace(/```/g, '').trim();
+            // Try direct parse first
+            try { return JSON.parse(cleaned); } catch (_) {}
+            // Fallback: extract the first JSON object substring
+            const match = cleaned.match(/\{[\s\S]*\}/);
+            if (match) {
+                try { return JSON.parse(match[0]); } catch (_) {}
+            }
+            return null;
+        }
+
+        function rewriteImagePath(path) {
+            // Ensure images load from GitHub Pages with ../ prefix when needed
+            if (path.startsWith('data/')) return `../${path}`;
+            if (path.startsWith('/data/')) return `..${path}`;
+            return path;
+        }
+
+        function getContextPrompt() {
+            return `Bạn là AI hỗ trợ phân tích dữ liệu crypto.\nCác biểu đồ và dữ liệu hiện có nằm trong thư mục /data/{symbol}/pic/ và mô tả trong manifest.json.\nKhi người dùng hỏi về phân tích, hãy kết hợp insight định tính (AI) với dữ liệu định lượng (manifest).`;
+        }
+
+        async function tryHandleIntent(userText) {
+            const text = userText.toLowerCase();
+            const symbol = detectSymbol(text) || 'BTC';
+            const intent = detectChartIntent(text);
+
+            // Capabilities/help intent
+            if (detectCapabilitiesIntent(text)) {
+                const html = buildCapabilitiesMessage();
+                addMessage(html, 'bot');
+                chatHistory.push({ role: 'user', parts: [{ text: userText }] });
+                chatHistory.push({ role: 'model', parts: [{ text: html }] });
+                saveHistoryToStorage();
+                return true;
+            }
+
+            // ✅ Updated: handle average price before chart intent
+            if (csvData) {
+                const avg = tryComputeAveragePriceFromTotalCSV(text, symbol);
+                if (avg != null && !isNaN(avg)) {
+                    const avgHtml = `💹 Giá trung bình của ${symbol} trong dataset ≈ <b>${Number(avg).toFixed(2)}</b>`;
+
+                    // If related chart exists, append it right after the number
+                    let combinedHtml = avgHtml;
+                    const hasCharts = manifest && manifest[symbol] && manifest[symbol].charts;
+                    const priceChartPath = hasCharts ? (manifest[symbol].charts['price_trend'] || null) : null;
+                    if (priceChartPath) {
+                        combinedHtml += `\n<p style="margin-top:8px;"><b>${symbol} - ${chartTitle('price_trend')}</b></p>\n<img src="${rewriteImagePath(priceChartPath)}" width="400">`;
+                    }
+
+                    addMessage(combinedHtml, 'bot');
+                    // Save to history
+                    chatHistory.push({ role: 'user', parts: [{ text: userText }] });
+                    chatHistory.push({ role: 'model', parts: [{ text: combinedHtml }] });
+                    saveHistoryToStorage();
+                    return true;
+                }
+            }
+
+            // Chart-only flow (when user asks for chart but not average)
+            if (intent && manifest && manifest[symbol] && manifest[symbol].charts) {
+                const chartPath = manifest[symbol].charts[intent];
+                if (chartPath) {
+                    const prettyTitle = chartTitle(intent);
+                    const html = `<p><b>${symbol} - ${prettyTitle}</b></p>\n<img src="${rewriteImagePath(chartPath)}" width="400">`;
+                    addMessage(html, 'bot');
+                    // Save to history
+                    chatHistory.push({ role: 'user', parts: [{ text: userText }] });
+                    chatHistory.push({ role: 'model', parts: [{ text: html }] });
+                    saveHistoryToStorage();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function detectSymbol(text) {
+            const symbols = ['BTC','ETH','BNB','SOL','XRP'];
+            for (const s of symbols) { if (text.includes(s.toLowerCase())) return s; }
+            return null;
+        }
+
+        function detectCapabilitiesIntent(text) {
+            return /\b(ban|bạn).*\b(có thể|làm được|hiển thị|show)\b|loại\s*dữ\s*liệu\s*nào|what\s+can\s+you\s+do|support|hỗ\s*trợ\s*dữ\s*liệu/i.test(text);
+        }
+
+        function buildCapabilitiesMessage() {
+            return [
+                '### 🧭 Tôi có thể hiển thị những gì?',
+                '',
+                '**Dữ liệu (type: "data")**',
+                '',
+                '| Metric | Ý nghĩa | Ví dụ truy vấn |',
+                '|---|---|---|',
+                '| `avg_close` | Giá đóng cửa trung bình | "BTC giá trung bình" |',
+                '| `latest_close` | Giá đóng cửa mới nhất | "ETH latest close" |',
+                '| `max_close` | Giá đóng cửa cao nhất | "BNB max close" |',
+                '| `min_close` | Giá đóng cửa thấp nhất | "SOL min close" |',
+                '| `volume` | Khối lượng giao dịch | "XRP volume" |',
+                '| `funding_rate` | Funding rate (nếu có) | "BTC funding rate" |',
+                '',
+                '**Biểu đồ (type: "chart")**',
+                '- `price_trend`: Xu hướng giá',
+                '- `volume_weekly`: Khối lượng theo tuần',
+                '- `correlation_heatmap`: Ma trận tương quan',
+                '- `funding_vs_close`, `volatility`, `composition`, `sentiment_trend`, `moving_average`, `rsi_indicator`',
+                '',
+                'Bạn có thể hỏi tự nhiên, ví dụ:',
+                '- "Cho mình xem xu hướng giá BTC"',
+                '- "Giá trung bình của ETH là bao nhiêu?"',
+                '- "Hiển thị correlation heatmap"'
+            ].join('\n');
+        }
+
+        function detectChartIntent(text) {
+            // Map keywords to manifest keys (extended)
+            if (/(biểu\s*đồ|xu\s*hướng|trend|giá|price)/i.test(text)) return 'price_trend';
+            if (/(volume|khối\s*lượng)/i.test(text)) return 'volume_weekly';
+            if (/(funding\s*rate|funding|basis)/i.test(text)) return 'funding_vs_close';
+            if (/(volatility|biến\s*động|log\s*return)/i.test(text)) return 'volatility';
+            if (/(composition|tỷ\s*trọng)/i.test(text)) return 'composition';
+            if (/(heatmap|tương\s*quan|correlation)/i.test(text)) return 'correlation_heatmap';
+            if (/(sentiment|tâm\s*lý)/i.test(text)) return 'sentiment_trend';
+            if (/(rsi|chỉ\s*báo\s*sức\s*mạnh)/i.test(text)) return 'rsi_indicator';
+            if (/(moving\s*average|\bma\b|đường\s*trung\s*bình)/i.test(text)) return 'moving_average';
+            return null;
+        }
+
+        function chartTitle(intent) {
+            switch (intent) {
+                case 'price_trend': return 'Price Trend';
+                case 'volume_weekly': return 'Weekly Volume';
+                case 'funding_vs_close': return 'Funding vs Close';
+                case 'volatility': return 'Volatility (Log Returns)';
+                case 'composition': return 'Feature Composition';
+                case 'correlation_heatmap': return 'Correlation Heatmap';
+                case 'sentiment_trend': return 'Sentiment Trend';
+                case 'moving_average': return 'Moving Average';
+                case 'rsi_indicator': return 'RSI Indicator';
+                default: return 'Chart';
+            }
+        }
+
+        function tryComputeAveragePriceFromTotalCSV(text, symbol) {
+            if (!/(giá\s*trung\s*bình|average\s*price|mean\s*price|giá\s*bình\s*quân)/i.test(text)) return null;
+            if (!csvData || !csvData.length) return null;
+            // Try to infer schema: look for columns like symbol and close
+            const rows = csvData.filter(r => {
+                const keys = Object.keys(r || {});
+                const symbolKey = keys.find(k => /^(symbol|coin|ticker)$/i.test(k));
+                if (symbolKey) return (r[symbolKey] + '').toUpperCase() === symbol;
+                // else: if per-coin columns exist like BTC_Close
+                const closeCol = keys.find(k => new RegExp(`^${symbol}[_\- ]?close$`, 'i').test(k));
+                return typeof r[closeCol] !== 'undefined';
+            });
+            if (!rows.length) return null;
+            // Compute close values
+            let values = [];
+            const keys = Object.keys(rows[0] || {});
+            const symbolKey = keys.find(k => /^(symbol|coin|ticker)$/i.test(k));
+            const closeKeyGeneric = keys.find(k => /^close$/i.test(k));
+            const closeKeySpecific = keys.find(k => new RegExp(`^${symbol}[_\- ]?close$`, 'i').test(k));
+            for (const r of rows) {
+                let v = null;
+                if (symbolKey && closeKeyGeneric) {
+                    if ((r[symbolKey] + '').toUpperCase() === symbol) v = r[closeKeyGeneric];
+                } else if (closeKeySpecific) {
+                    v = r[closeKeySpecific];
+                }
+                if (typeof v === 'number' && isFinite(v)) values.push(v);
+                else if (typeof v === 'string' && v.trim()) {
+                    const n = parseFloat(v.replace(/,/g, ''));
+                    if (!isNaN(n)) values.push(n);
+                }
+            }
+            if (!values.length) return null;
+            const sum = values.reduce((a,b)=>a+b,0);
+            return sum / values.length;
+        }
+
+        // Helper: generic CSV value computation per metric
+        function tryComputeValueFromCSV(symbol, metric) {
+            const sym = String(symbol).toUpperCase();
+            if (!csvData || !csvData.length) return null;
+            const rows = csvData.filter(r => {
+                const keys = Object.keys(r || {});
+                const symbolKey = keys.find(k => /^(symbol|coin|ticker)$/i.test(k));
+                if (symbolKey) return (r[symbolKey] + '').toUpperCase() === sym;
+                const closeCol = keys.find(k => new RegExp(`^${sym}[_\- ]?close$`, 'i').test(k));
+                return typeof r[closeCol] !== 'undefined';
+            });
+            if (!rows.length) return null;
+            // Currently support avg_close; can extend later
+            if (metric === 'avg_close') {
+                let values = [];
+                const keys = Object.keys(rows[0] || {});
+                const symbolKey = keys.find(k => /^(symbol|coin|ticker)$/i.test(k));
+                const closeKeyGeneric = keys.find(k => /^close$/i.test(k));
+                const closeKeySpecific = keys.find(k => new RegExp(`^${sym}[_\- ]?close$`, 'i').test(k));
+                for (const r of rows) {
+                    let v = null;
+                    if (symbolKey && closeKeyGeneric) {
+                        if ((r[symbolKey] + '').toUpperCase() === sym) v = r[closeKeyGeneric];
+                    } else if (closeKeySpecific) {
+                        v = r[closeKeySpecific];
+                    }
+                    if (typeof v === 'number' && isFinite(v)) values.push(v);
+                    else if (typeof v === 'string' && v.trim()) {
+                        const n = parseFloat(v.replace(/,/g, ''));
+                        if (!isNaN(n)) values.push(n);
+                    }
+                }
+                if (!values.length) return null;
+                const sum = values.reduce((a,b)=>a+b,0);
+                return sum / values.length;
+            }
+            return null;
+        }
+
+        // Helper: compute average Close for a symbol without regex trigger (back-compat)
+        function computeAverageCloseForSymbol(symbol) {
+            return tryComputeValueFromCSV(symbol, 'avg_close');
+        }
+
+        // Simple average based on per-symbol CSV loaded into window.csvData
+        function tryComputeAveragePricePerSymbol(symbol) {
+            const sym = String(symbol).toUpperCase();
+            if (!window.csvData || !Array.isArray(window.csvData[sym])) return NaN;
+            const values = window.csvData[sym]
+                .map(r => {
+                    const v = r && (r.Close ?? r.close);
+                    if (typeof v === 'number' && isFinite(v)) return v;
+                    if (typeof v === 'string') {
+                        const n = parseFloat(String(v).replace(/,/g, ''));
+                        return isNaN(n) ? NaN : n;
+                    }
+                    return NaN;
+                })
+                .filter(n => typeof n === 'number' && isFinite(n));
+            if (!values.length) return NaN;
+            return values.reduce((a,b)=>a+b,0) / values.length;
+        }
+    </script>
+</body>
+</html>

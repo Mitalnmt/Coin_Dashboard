@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Dashboard - Multi-Symbol Analytics</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Papa Parse for CSV -->
+    <script src="https://unpkg.com/papaparse@5/papaparse.min.js"></script>
+    
+    <!-- Custom CSS for consistency -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <style>
+        body {
+            background-color: #0b0e11;
+            color: #e5e7eb;
+        }
+        
+        .chart-card {
+            background-color: #111827;
+            border: 1px solid #374151;
+        }
+        
+        .symbol-button {
+            transition: all 0.2s;
+        }
+        
+        .symbol-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .symbol-button.active {
+            background-color: #22c55e;
+            color: white;
+        }
+        
+        /* Chart container heights to prevent overflow */
+        #priceChart {
+            height: 400px !important;
+            max-height: 400px;
+        }
+        
+        #volumeChart, #volatilityChart {
+            height: 300px !important;
+            max-height: 300px;
+        }
+        
+        .chart-container {
+            height: 400px;
+        }
+        
+        .chart-container-small {
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="navbar">
+            <a href="index.html" class="logo">BTC Dash</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="chart.html">Charts</a></li>
+                <li><a href="chatbot.html">Chatbot</a></li>
+                <li><a href="forecast.html">Forecast</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="min-h-screen bg-[#0b0e11]">
+        
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 py-6">
+            <!-- Symbol Selector -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-3 text-gray-300">Select Symbol</h2>
+                <div class="flex flex-wrap gap-3 mb-4">
+                    <button onclick="selectSymbol('BTC')" id="btn-BTC" 
+                        class="symbol-button px-6 py-2 rounded-lg font-semibold active bg-green-500 text-white">
+                        BTC
+                    </button>
+                    <button onclick="selectSymbol('ETH')" id="btn-ETH" 
+                        class="symbol-button px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">
+                        ETH
+                    </button>
+                    <button onclick="selectSymbol('BNB')" id="btn-BNB" 
+                        class="symbol-button px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">
+                        BNB
+                    </button>
+                    <button onclick="selectSymbol('SOL')" id="btn-SOL" 
+                        class="symbol-button px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">
+                        SOL
+                    </button>
+                    <button onclick="selectSymbol('XRP')" id="btn-XRP" 
+                        class="symbol-button px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">
+                        XRP
+                    </button>
+                </div>
+                
+                <!-- Date Range Selector -->
+                <div class="flex items-center gap-3">
+                    <label class="text-gray-300 font-medium">Time Range:</label>
+                    <select id="timeRangeSelect" onchange="onTimeRangeChange()" 
+                        class="px-4 py-2 bg-[#1f2937] border border-[#374151] rounded-lg text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="1">1 Day</option>
+                        <option value="7">7 Days</option>
+                        <option value="30" selected>30 Days</option>
+                        <option value="90">90 Days</option>
+                        <option value="180">180 Days</option>
+                        <option value="365">1 Year</option>
+                    </select>
+                    <span id="dateRangeInfo" class="text-sm text-gray-400"></span>
+                </div>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="loadingState" class="flex items-center justify-center py-12">
+                <div class="text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                    <p class="text-gray-400">Loading data...</p>
+                </div>
+            </div>
+            
+            <!-- Charts Container -->
+            <div id="chartsContainer" class="hidden">
+                <!-- Summary Statistics -->
+                <div id="summaryStats" class="chart-card rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">
+                        Summary Statistics - <span id="summarySymbol">BTC</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-[#1f2937] p-4 rounded-lg">
+                            <p class="text-gray-400 text-sm mb-1">Current Price</p>
+                            <p id="currentPrice" class="text-2xl font-bold text-green-500">--</p>
+                        </div>
+                        <div class="bg-[#1f2937] p-4 rounded-lg">
+                            <p class="text-gray-400 text-sm mb-1" id="returnLabel">Return</p>
+                            <p id="sevenDayReturn" class="text-2xl font-bold text-green-500">--</p>
+                        </div>
+                        <div class="bg-[#1f2937] p-4 rounded-lg">
+                            <p class="text-gray-400 text-sm mb-1" id="volatilityLabel">Volatility</p>
+                            <p id="volatility30d" class="text-2xl font-bold text-blue-500">--</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main Charts -->
+                <div class="space-y-6">
+                    <!-- Price Chart with MA -->
+                    <div class="chart-card rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-300" id="chartTitle">
+                            <span id="chartSymbol">BTC</span> Price (Close) with Moving Averages - <span id="chartTimeRange">30 Days</span>
+                        </h3>
+                        <div style="height: 400px;">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Volume and Volatility Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="chart-card rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4 text-gray-300">Volume</h3>
+                            <div style="height: 300px;">
+                                <canvas id="volumeChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4 text-gray-300" id="volatilityTitle">Price Volatility</h3>
+                            <div style="height: 300px;">
+                                <canvas id="volatilityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>Multi-Symbol Crypto Dashboard — Live Data</p>
+    </footer>
+
+    <script>
+        // Global variables
+        let allData = [];
+        let currentSymbol = 'BTC';
+        let currentTimeRange = 30; // Default 30 days
+        let priceChart = null;
+        let volumeChart = null;
+        let volatilityChart = null;
+        
+        // Chart.js default config
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.borderColor = '#374151';
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCSVData();
+        });
+        
+        // Load CSV data
+        function loadCSVData() {
+            // Try multiple possible paths for different deployment scenarios
+            const possiblePaths = [
+                '../data/dataset_total_clean.csv',  // Local development from frontend/
+                'data/dataset_total_clean.csv',     // GitHub Pages from root
+                '/data/dataset_total_clean.csv',    // GitHub Pages absolute
+                '/BTC_BIT-main/data/dataset_total_clean.csv'  // GitHub Pages with repo name
+            ];
+            
+            let pathIndex = 0;
+            
+            function tryNextPath() {
+                if (pathIndex >= possiblePaths.length) {
+                    document.getElementById('loadingState').innerHTML = 
+                        '<div class="text-center text-red-500">' +
+                        '<p class="text-lg font-semibold mb-2">Error: Could not load CSV file</p>' +
+                        '<p class="text-sm">Please make sure you are running a local web server:</p>' +
+                        '<p class="text-sm bg-[#1f2937] p-3 rounded mt-2">' +
+                        '<strong>Python:</strong> python -m http.server 8000<br/>' +
+                        '<strong>Node:</strong> npx http-server -p 8000<br/>' +
+                        '<strong>PHP:</strong> php -S localhost:8000' +
+                        '</p>' +
+                        '<p class="text-sm mt-2">Then open: http://localhost:8000/frontend/dashboard.html</p>' +
+                        '</div>';
+                    return;
+                }
+                
+                const path = possiblePaths[pathIndex];
+                console.log(`Trying to load CSV from: ${path}`);
+                
+                Papa.parse(path, {
+                    download: true,
+                    header: true,
+                    dynamicTyping: true,
+                    complete: (results) => {
+                        console.log('CSV loaded successfully from:', path);
+                        allData = results.data.filter(row => row.symbol && row.Close);
+                        renderCharts('BTC');
+                    },
+                    error: (error) => {
+                        console.error(`Error loading CSV from ${path}:`, error);
+                        pathIndex++;
+                        tryNextPath();
+                    }
+                });
+            }
+            
+            tryNextPath();
+        }
+        
+        // Select symbol
+        function selectSymbol(symbol) {
+            currentSymbol = symbol;
+            
+            // Update button states
+            ['BTC', 'ETH', 'BNB', 'SOL', 'XRP'].forEach(s => {
+                const btn = document.getElementById(`btn-${s}`);
+                if (s === symbol) {
+                    btn.classList.add('active', 'bg-green-500', 'text-white');
+                    btn.classList.remove('bg-[#1f2937]', 'text-gray-300');
+                } else {
+                    btn.classList.remove('active', 'bg-green-500', 'text-white');
+                    btn.classList.add('bg-[#1f2937]', 'text-gray-300');
+                }
+            });
+            
+            renderCharts(symbol);
+        }
+        
+        // Handle time range change
+        function onTimeRangeChange() {
+            const select = document.getElementById('timeRangeSelect');
+            currentTimeRange = parseInt(select.value);
+            renderCharts(currentSymbol);
+        }
+        
+        // Render all charts
+        function renderCharts(symbol) {
+            // Filter data for selected symbol
+            let symbolData = allData.filter(row => row.symbol === symbol);
+            
+            if (symbolData.length === 0) {
+                console.error(`No data found for ${symbol}`);
+                return;
+            }
+            
+            // Sort by date
+            symbolData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            
+            // Special handling for 1 day: show last 2 days (yesterday to today/latest)
+            let filteredData;
+            if (currentTimeRange === 1) {
+                // Take last 2 days for 1 day view to show price change
+                const daysToShow = Math.min(2, symbolData.length);
+                filteredData = symbolData.slice(-daysToShow);
+            } else {
+                // For other time ranges, take last N days
+                const daysToShow = Math.min(currentTimeRange, symbolData.length);
+                filteredData = symbolData.slice(-daysToShow);
+            }
+            
+            // Update date range info
+            if (filteredData.length > 0) {
+                const firstDate = new Date(filteredData[0].Date).toLocaleDateString();
+                const lastDate = new Date(filteredData[filteredData.length - 1].Date).toLocaleDateString();
+                
+                // For 1 day view, show different info
+                if (currentTimeRange === 1 && filteredData.length === 2) {
+                    document.getElementById('dateRangeInfo').textContent = 
+                        `${firstDate} - ${lastDate} (24h change)`;
+                } else {
+                    document.getElementById('dateRangeInfo').textContent = 
+                        `${firstDate} - ${lastDate} (${filteredData.length} days)`;
+                }
+            }
+            
+            // Calculate moving averages
+            const avg7 = (arr, idx) => {
+                const start = Math.max(0, idx - 6);
+                const slice = arr.slice(start, idx + 1).map(d => d.Close).filter(v => v != null);
+                return slice.length ? slice.reduce((a, b) => a + b, 0) / slice.length : null;
+            };
+            
+            const avg30 = (arr, idx) => {
+                const start = Math.max(0, idx - 29);
+                const slice = arr.slice(start, idx + 1).map(d => d.Close).filter(v => v != null);
+                return slice.length ? slice.reduce((a, b) => a + b, 0) / slice.length : null;
+            };
+            
+            const dataWithMA = filteredData.map((item, idx) => ({
+                ...item,
+                ma7: avg7(filteredData, idx),
+                ma30: avg30(filteredData, idx)
+            }));
+            
+            // Update summary stats
+            updateSummaryStats(dataWithMA, symbol);
+            
+            // Update chart symbol header
+            document.getElementById('chartSymbol').textContent = symbol;
+            document.getElementById('summarySymbol').textContent = symbol;
+            
+            // Update chart title with time range
+            const timeRangeLabels = {
+                1: '1 Day',
+                7: '7 Days',
+                30: '30 Days',
+                90: '90 Days',
+                180: '180 Days',
+                365: '1 Year'
+            };
+            document.getElementById('chartTimeRange').textContent = timeRangeLabels[currentTimeRange] || `${currentTimeRange} Days`;
+            
+            // Update stat labels based on time range
+            if (currentTimeRange >= 7) {
+                document.getElementById('returnLabel').textContent = '7-Day Return';
+            } else {
+                document.getElementById('returnLabel').textContent = 'Return';
+            }
+            
+            if (currentTimeRange >= 30) {
+                document.getElementById('volatilityLabel').textContent = '30-Day Volatility';
+            } else if (currentTimeRange >= 7) {
+                document.getElementById('volatilityLabel').textContent = 'Volatility';
+            } else {
+                document.getElementById('volatilityLabel').textContent = 'Price Range';
+            }
+            
+            // Update volatility chart title based on time range
+            const volatilityTitleElem = document.getElementById('volatilityTitle');
+            if (currentTimeRange === 1) {
+                volatilityTitleElem.textContent = 'Price Range (24h)';
+            } else if (currentTimeRange < 7) {
+                volatilityTitleElem.textContent = 'Price Change';
+            } else {
+                volatilityTitleElem.textContent = '7-Day Volatility';
+            }
+            
+            // Show charts container
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('chartsContainer').classList.remove('hidden');
+            
+            // Render charts
+            renderPriceChart(dataWithMA);
+            renderVolumeChart(dataWithMA);
+            renderVolatilityChart(dataWithMA);
+        }
+        
+        // Update summary statistics
+        function updateSummaryStats(data, symbol) {
+            if (!data || data.length === 0) {
+                document.getElementById('currentPrice').textContent = 'N/A';
+                document.getElementById('sevenDayReturn').textContent = 'N/A';
+                document.getElementById('volatility30d').textContent = 'N/A';
+                return;
+            }
+            
+            const latest = data[data.length - 1];
+            
+            // Current price
+            document.getElementById('currentPrice').textContent = 
+                latest.Close ? `$${latest.Close.toFixed(2)}` : 'N/A';
+            
+            // Calculate return based on available data
+            const element = document.getElementById('sevenDayReturn');
+            
+            if (data.length >= 7) {
+                // 7-day return
+                const sevenDaysAgo = data[data.length - 7];
+                const sevenDayReturn = (((latest.Close - sevenDaysAgo.Close) / sevenDaysAgo.Close) * 100);
+                element.textContent = `${sevenDayReturn.toFixed(2)}%`;
+                element.className = `text-2xl font-bold ${sevenDayReturn >= 0 ? 'text-green-500' : 'text-red-500'}`;
+            } else if (data.length > 1) {
+                // Calculate return from first to latest day
+                const firstDay = data[0];
+                const oneDayReturn = (((latest.Close - firstDay.Close) / firstDay.Close) * 100);
+                element.textContent = `${oneDayReturn.toFixed(2)}%`;
+                element.className = `text-2xl font-bold ${oneDayReturn >= 0 ? 'text-green-500' : 'text-red-500'}`;
+            } else {
+                // Only 1 day of data
+                element.textContent = '0.00%';
+                element.className = 'text-2xl font-bold text-gray-500';
+            }
+            
+            // Volatility or Price Range calculation
+            const dataForVol = data.map(d => d.Close).filter(val => val != null);
+            
+            // Get current time range to determine what to show
+            const timeRange = parseInt(document.getElementById('timeRangeSelect').value);
+            
+            if (dataForVol.length > 1 && timeRange >= 7) {
+                // Calculate volatility
+                const avg = dataForVol.reduce((a, b) => a + b, 0) / dataForVol.length;
+                const variance = dataForVol.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / dataForVol.length;
+                const volatility = Math.sqrt(variance);
+                document.getElementById('volatility30d').textContent = volatility.toFixed(2);
+            } else if (timeRange === 1 && dataForVol.length === 1) {
+                // For 1 day, show price range (High - Low)
+                const range = latest.High && latest.Low ? (latest.High - latest.Low).toFixed(2) : '0.00';
+                document.getElementById('volatility30d').textContent = '$' + range;
+            } else if (dataForVol.length > 1) {
+                // Calculate simple range
+                const minPrice = Math.min(...dataForVol);
+                const maxPrice = Math.max(...dataForVol);
+                const priceRange = (maxPrice - minPrice).toFixed(2);
+                document.getElementById('volatility30d').textContent = '$' + priceRange;
+            } else {
+                document.getElementById('volatility30d').textContent = 'N/A';
+            }
+        }
+        
+        // Render price chart with moving averages
+        function renderPriceChart(data) {
+            if (!data || data.length === 0) {
+                console.error('No data to render for price chart');
+                return;
+            }
+            
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            const labels = data.map(d => new Date(d.Date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}));
+            
+            // Build datasets
+            const datasets = [{
+                label: 'Close Price',
+                data: data.map(d => d.Close),
+                borderColor: '#22c55e',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
+                tension: 0.4
+            }];
+            
+            // Only add MA7 if there's more than 7 days of data
+            if (data.length > 7) {
+                datasets.push({
+                    label: 'MA7',
+                    data: data.map(d => d.ma7),
+                    borderColor: '#60a5fa',
+                    backgroundColor: 'transparent',
+                    fill: false,
+                    tension: 0.4,
+                    borderDash: [5, 5]
+                });
+            }
+            
+            // Only add MA30 if there's more than 30 days of data
+            if (data.length > 30) {
+                datasets.push({
+                    label: 'MA30',
+                    data: data.map(d => d.ma30),
+                    borderColor: '#a855f7',
+                    backgroundColor: 'transparent',
+                    fill: false,
+                    tension: 0.4
+                });
+            }
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: '#374151'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 10
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Render volume chart
+        function renderVolumeChart(data) {
+            if (!data || data.length === 0) {
+                console.error('No data to render for volume chart');
+                return;
+            }
+            
+            const ctx = document.getElementById('volumeChart').getContext('2d');
+            
+            if (volumeChart) {
+                volumeChart.destroy();
+            }
+            
+            const labels = data.map(d => new Date(d.Date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}));
+            
+            volumeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Volume',
+                        data: data.map(d => d.Volume),
+                        backgroundColor: '#60a5fa',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Volume: ' + context.parsed.y.toFixed(0);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: '#374151'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Render volatility chart
+        function renderVolatilityChart(data) {
+            if (!data || data.length === 0) {
+                console.error('No data to render for volatility chart');
+                return;
+            }
+            
+            const ctx = document.getElementById('volatilityChart').getContext('2d');
+            
+            if (volatilityChart) {
+                volatilityChart.destroy();
+            }
+            
+            const labels = data.map(d => new Date(d.Date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}));
+            
+            // Calculate actual price volatility (standard deviation of price changes)
+            // For single day: show high-low range
+            // For multiple days: calculate daily volatility
+            let volatilityData;
+            
+            if (data.length === 1) {
+                // Single day: use High - Low as volatility measure
+                const day = data[0];
+                volatilityData = [day.High && day.Low ? ((day.High - day.Low) / day.Close * 100) : 0];
+            } else if (data.length === 2) {
+                // Two days: calculate price change percentage
+                const prices = data.map(d => d.Close);
+                const changes = [0]; // First day has no change
+                for (let i = 1; i < prices.length; i++) {
+                    changes.push(Math.abs((prices[i] - prices[i-1]) / prices[i-1] * 100));
+                }
+                volatilityData = changes;
+            } else {
+                // Multiple days: calculate rolling volatility
+                const prices = data.map(d => d.Close);
+                volatilityData = prices.map((price, idx) => {
+                    if (idx === 0) return 0;
+                    // Calculate standard deviation of recent prices
+                    const windowSize = Math.min(7, idx + 1);
+                    const recentPrices = prices.slice(Math.max(0, idx - windowSize + 1), idx + 1);
+                    const avg = recentPrices.reduce((a, b) => a + b, 0) / recentPrices.length;
+                    const variance = recentPrices.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / recentPrices.length;
+                    const stdDev = Math.sqrt(variance);
+                    return (stdDev / avg * 100); // Return as percentage
+                });
+            }
+            
+            volatilityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Volatility (%)',
+                        data: volatilityData,
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Volatility: ' + context.parsed.y.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: '#374151'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

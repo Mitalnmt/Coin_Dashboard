@@ -1,0 +1,43 @@
+{
+  "GLOBAL": [
+    "waffle_volume_share.png",
+    "area_close_all.png",
+    "bar_avg_close.png",
+    "pie_miner_revenue.png"
+  ],
+  "BTC": [
+    "area_close.png",
+    "bar_weekly_volume.png",
+    "hist_log_return.png",
+    "pie_features_scaled.png",
+    "scatter_funding_vs_close.png"
+  ],
+  "ETH": [
+    "area_close.png",
+    "bar_weekly_volume.png",
+    "hist_log_return.png",
+    "pie_features_scaled.png",
+    "scatter_funding_vs_close.png"
+  ],
+  "BNB": [
+    "area_close.png",
+    "bar_weekly_volume.png",
+    "hist_log_return.png",
+    "pie_features_scaled.png",
+    "scatter_funding_vs_close.png"
+  ],
+  "SOL": [
+    "area_close.png",
+    "bar_weekly_volume.png",
+    "hist_log_return.png",
+    "pie_features_scaled.png",
+    "scatter_funding_vs_close.png"
+  ],
+  "XRP": [
+    "area_close.png",
+    "bar_weekly_volume.png",
+    "hist_log_return.png",
+    "pie_features_scaled.png",
+    "scatter_funding_vs_close.png"
+  ]
+}

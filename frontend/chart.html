@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charts - BTC Dash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+    .chart-row {
+      display: block; /* single column feed */
+      margin-bottom: 40px;
+    }
+    .chart-item {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 12px;
+      max-width: 960px;            /* large readable width */
+      margin: 0 auto 24px auto;    /* center each post-like card */
+    }
+    .chart-item img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      cursor: pointer;
+      display: block;
+    }
+    .chart-item img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+    }
+    .chart-item figcaption {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #e5e7eb;
+      text-align: center;
+    }
+    main.container h1 {
+      text-align: center;
+      margin-top: 30px;
+      color: #e5e7eb;
+    }
+    main.container h2 {
+      margin: 32px auto 16px auto;
+      padding-left: 0;
+      border-left: none;
+      color: #f3f4f6;
+      max-width: 960px;
+    }
+    body {
+      background: #0b0e11;
+      color: #e5e7eb;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 10px;
+    }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="navbar">
+            <a href="index.html" class="logo">BTC Dash</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="chart.html" class="active">Charts</a></li>
+                <li><a href="chatbot.html">Chatbot</a></li>
+                <li><a href="forecast.html">Forecast</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <h1>📈 Crypto Chart Gallery</h1>
+
+        <div class="flex flex-wrap gap-3 mb-4">
+            <button id="btn-ALL" onclick="filterGallery('ALL')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">ALL</button>
+            <button id="btn-BTC" onclick="filterGallery('BTC')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">BTC</button>
+            <button id="btn-ETH" onclick="filterGallery('ETH')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">ETH</button>
+            <button id="btn-BNB" onclick="filterGallery('BNB')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">BNB</button>
+            <button id="btn-SOL" onclick="filterGallery('SOL')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">SOL</button>
+            <button id="btn-XRP" onclick="filterGallery('XRP')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">XRP</button>
+        </div>
+
+        <div id="chart-gallery"></div>
+        <div id="img-modal" class="modal" onclick="this.style.display='none'">
+            <img id="modal-img">
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>Mock UI — HTML-only scaffold</p>
+    </footer>
+</body>
+<script>
+document.addEventListener("click", e => {
+  if (e.target.tagName === "IMG" && e.target.closest(".chart-row")) {
+    const modal = document.getElementById("img-modal");
+    const modalImg = document.getElementById("modal-img");
+    modal.style.display = "flex";
+    modalImg.src = e.target.src;
+  }
+});
+
+async function loadChartGallery() {
+  const galleryContainer = document.getElementById("chart-gallery");
+  if (!galleryContainer) return;
+  galleryContainer.innerHTML = "<p>⏳ Đang tải biểu đồ...</p>";
+  try {
+    const res = await fetch("../data/picture/manifest.json");
+    const manifest = await res.json();
+    galleryContainer.innerHTML = "";
+
+    const formatChartName = (file) => {
+      const base = file.replace(/\.(png|jpg|jpeg|gif|webp)$/i, "");
+      return base.replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    };
+
+    if (manifest["GLOBAL"]) {
+      const globalSection = document.createElement("section");
+      globalSection.setAttribute("data-section-symbol", "GLOBAL");
+      globalSection.innerHTML = `
+        <h2>🌍 Global Market Overview</h2>
+        <div class="chart-row">
+          ${manifest["GLOBAL"].map(file => `
+            <figure class="chart-item">
+              <img src="../data/picture/${file}" alt="${file}" loading="lazy">
+              <figcaption>${formatChartName(file)}</figcaption>
+            </figure>
+          `).join("")}
+        </div>
+      `;
+      galleryContainer.appendChild(globalSection);
+    }
+    Object.keys(manifest).forEach(symbol => {
+      if (symbol === "GLOBAL") return;
+      const section = document.createElement("section");
+      section.setAttribute("data-section-symbol", symbol);
+      section.innerHTML = `
+        <h2>💰 ${symbol} Charts</h2>
+        <div class="chart-row">
+          ${manifest[symbol].map(file => `
+            <figure class="chart-item">
+              <img src="../data/${symbol}/pic/${file}" alt="${symbol}-${file}" loading="lazy">
+              <figcaption>${formatChartName(file)}</figcaption>
+            </figure>
+          `).join("")}
+        </div>
+      `;
+      galleryContainer.appendChild(section);
+    });
+  } catch (err) {
+    console.error("❌ Lỗi khi tải manifest:", err);
+    galleryContainer.innerHTML = "<p>⚠️ Không thể tải dữ liệu biểu đồ.</p>";
+  }
+}
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadChartGallery();
+  filterGallery('ALL');
+});
+
+function filterGallery(symbol) {
+  const sections = document.querySelectorAll('#chart-gallery section');
+  sections.forEach(sec => {
+    const secSymbol = sec.getAttribute('data-section-symbol');
+    if (symbol === 'ALL') {
+      sec.style.display = secSymbol === 'GLOBAL' ? '' : 'none';
+    } else {
+      sec.style.display = secSymbol === symbol ? '' : 'none';
+    }
+  });
+
+  const symbols = ['ALL','BTC','ETH','BNB','SOL','XRP'];
+  symbols.forEach(s => {
+    const btn = document.getElementById(`btn-${s}`);
+    if (!btn) return;
+    if (s === symbol) {
+      btn.classList.add('bg-green-500','text-white');
+      btn.classList.remove('bg-[#1f2937]','text-gray-300');
+    } else {
+      btn.classList.remove('bg-green-500','text-white');
+      btn.classList.add('bg-[#1f2937]','text-gray-300');
+    }
+  });
+}
+</script>
+</html>
