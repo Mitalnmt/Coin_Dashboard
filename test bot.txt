@@ -24,6 +24,9 @@ Hoặc dùng file tiện dụng:
 Mở PowerShell 3:
 ngrok http 5000
 
+git add .
+git commit -m "update"
+git push
 
 
 
