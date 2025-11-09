@@ -3,30 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chatbot - BTC Dash</title>
+    <title>AI Chatbot - Coin Dash</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <!-- Marked.js for markdown processing -->
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
     <!-- PapaParse for CSV parsing (optional data queries) -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
-        .chat-messages {
-            max-height: 500px;
-            overflow-y: auto;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        /* Fullscreen body setup */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            flex-shrink: 0;
+        }
+        
+        .chatbot-main {
+            flex: 1;
+            min-height: 0;
+        }
+        
         .message {
             margin-bottom: 15px;
-            padding: 12px 16px;
-            border-radius: 16px;
-            max-width: 80%;
-            display: inline-block;
-            width: fit-content;
+            padding: 14px 18px;
+            border-radius: 12px;
+            max-width: 100%;
+            min-width: 550px;
+            width: 100%;
+            display: block;
             word-wrap: break-word;
             white-space: pre-wrap;
+            overflow-wrap: anywhere; /* prevent long tokens from overflowing */
+            word-break: break-word;  /* ensure breaks on long URLs/words */
+            line-height: 1.3;
+            box-sizing: border-box;
         }
         /* Message row with avatar and alignment */
         .message-row {
@@ -34,9 +53,48 @@
             align-items: flex-end;
             gap: 10px;
             margin-bottom: 12px;
+            width: 100%;
         }
         .message-row.right {
             justify-content: flex-end;
+        }
+        
+        /* Đảm bảo wrapper chứa message có độ rộng phù hợp và đều nhau */
+        .message-row > div:not(.avatar) {
+            flex: 0 1 auto;
+            min-width: 550px;
+            max-width: 85%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Đảm bảo message bên trong wrapper có độ rộng đều */
+        .message-row .message {
+            width: 100%;
+            max-width: 100%;
+            min-width: 100%;
+        }
+        
+        /* Responsive: điều chỉnh cho màn hình nhỏ */
+        @media (max-width: 768px) {
+            .message-row > div:not(.avatar) {
+                min-width: 300px;
+                max-width: 90%;
+            }
+            .message {
+                min-width: 300px;
+            }
+        }
+        
+        /* Responsive: điều chỉnh cho màn hình trung bình */
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .message-row > div:not(.avatar) {
+                min-width: 500px;
+                max-width: 80%;
+            }
+            .message {
+                min-width: 500px;
+            }
         }
         .avatar {
             width: 32px;
@@ -53,8 +111,8 @@
         }
         .avatar.bot { background: #dbeafe; color: #1d4ed8; }
         .avatar.user { background: #d1e7ff; color: #0b5ed7; }
-        .message.bot { border-bottom-left-radius: 6px; }
-        .message.user { border-bottom-right-radius: 6px; }
+        .message.bot { border-bottom-left-radius: 4px; }
+        .message.user { border-bottom-right-radius: 4px; }
         .message .meta {
             margin-top: 4px;
             font-size: 11px;
@@ -69,43 +127,129 @@
             box-shadow: 0 4px 12px rgba(13,110,253,0.15);
         }
         .message.bot {
-            background: #e9ecef;
-            color: #333;
+            background: #ffffff; /* white background for better contrast on dark */
+            color: #000000;      /* black text for maximum readability */
             margin-right: auto;
             align-self: flex-start;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        
+        /* Đảm bảo tiêu đề trong bot message có màu đen đậm và rõ ràng */
+        .message.bot h1,
+        .message.bot h2,
+        .message.bot h3,
+        .message.bot h4,
+        .message.bot h5,
+        .message.bot h6 {
+            color: #000000 !important;
+            font-weight: 700 !important;
+        }
+        
+        /* Đảm bảo text thường trong bot message cũng đủ đậm */
+        .message.bot p,
+        .message.bot li,
+        .message.bot span {
+            color: #1a1a1a;
         }
         .message.loading {
             background: #e9ecef;
             color: #666;
             font-style: italic;
         }
+        .chat-input {
+            padding: 16px 20px;
+            background: #111827;
+            border-top: 1px solid #2a2f3e;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .input-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .input-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 18px;
+        }
+        
+        .input-action-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(34,197,94,0.5);
+            transform: scale(1.05);
+        }
+        
         .chat-input textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            resize: vertical;
+            padding: 14px 16px;
+            border: 1px solid #2a2f3e;
+            border-radius: 12px;
+            resize: none;
             font-family: inherit;
             font-size: 14px;
+            background: #0b0e11;
+            color: #e5e7eb;
+            line-height: 1.5;
+            min-height: 60px;
+            max-height: 200px;
         }
+        
+        .chat-input textarea:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+        }
+        
+        .chat-input textarea::placeholder {
+            color: #6b7280;
+        }
+        
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        
         .chat-input button {
-            margin-top: 10px;
-            padding: 10px 24px;
-            background: #007bff;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(34,197,94,0.2);
         }
+        
         .chat-input button:hover:not(:disabled) {
-            background: #0056b3;
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34,197,94,0.3);
         }
+        
+        .chat-input button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
         .chat-input button:disabled {
-            background: #ccc;
+            background: #374151;
             cursor: not-allowed;
+            box-shadow: none;
         }
         .error-message {
             background: #f8d7da;
@@ -117,41 +261,56 @@
         
         /* Markdown styling for chat messages */
         .message h1, .message h2, .message h3, .message h4, .message h5, .message h6 {
-            margin: 10px 0 5px 0;
-            font-weight: bold;
+            margin: 6px 0 2px 0;
+            font-weight: 700;
+            line-height: 1.3;
+            color: #000000; /* Đảm bảo tiêu đề có màu đen đậm */
         }
-        .message h1 { font-size: 1.5em; }
-        .message h2 { font-size: 1.3em; }
-        .message h3 { font-size: 1.2em; }
+        .message h1 { font-size: 1.5em; color: #000000; margin: 6px 0 2px 0; }
+        .message h2 { font-size: 1.3em; color: #000000; margin: 6px 0 2px 0; }
+        .message h3 { font-size: 1.2em; color: #000000; font-weight: 700; margin: 6px 0 2px 0; }
         
         .message p {
-            margin: 8px 0;
-            line-height: 1.4;
+            margin: 2px 0;
+            line-height: 1.3;
         }
         
         .message ul, .message ol {
-            margin: 8px 0;
+            margin: 2px 0;
             padding-left: 20px;
         }
         
         .message li {
-            margin: 4px 0;
+            margin: 1px 0;
+            line-height: 1.3;
+            padding-left: 4px;
+        }
+        
+        /* Đảm bảo khoảng cách đều giữa các phần tử trong message */
+        .message > *:first-child {
+            margin-top: 0;
+        }
+        
+        .message > *:last-child {
+            margin-bottom: 0;
         }
         
         .message code {
-            background: rgba(0, 0, 0, 0.1);
-            padding: 2px 4px;
-            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.08);
+            padding: 2px 6px;
+            border-radius: 4px;
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
+            line-height: 1.3;
         }
         
         .message pre {
             background: rgba(0, 0, 0, 0.05);
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 6px;
             overflow-x: auto;
-            margin: 10px 0;
+            margin: 4px 0;
+            line-height: 1.3;
         }
         
         .message pre code {
@@ -161,10 +320,11 @@
         
         .message blockquote {
             border-left: 4px solid #007bff;
-            margin: 10px 0;
+            margin: 4px 0;
             padding-left: 15px;
             font-style: italic;
-            color: #666;
+            color: #555;
+            line-height: 1.3;
         }
         
         .message strong {
@@ -175,21 +335,23 @@
             font-style: italic;
         }
         
-        .message a {
-            color: #007bff;
-            text-decoration: underline;
-        }
+        .message a { color: #0b5ed7; text-decoration: underline; }
+        .message.user a { color: #eaf2ff; text-decoration: underline; } /* readable on blue bubble */
+        .message code { color: inherit; }
+        .message.user code { background: rgba(255,255,255,0.18); color: #fff; }
+        .message img { max-width: 100%; height: auto; display: block; }
         
         .message table {
             border-collapse: collapse;
             width: 100%;
-            margin: 10px 0;
+            margin: 4px 0;
         }
         
         .message th, .message td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 6px 10px;
             text-align: left;
+            line-height: 1.3;
         }
         
         .message th {
@@ -197,41 +359,195 @@
             font-weight: bold;
         }
         
-        /* New Layout Styles */
-        .main-content {
+        /* Fullscreen Layout */
+        .chatbot-main {
             display: flex;
-            height: calc(100vh - 120px);
-            gap: 20px;
-            margin-top: 20px;
+            flex: 1;
+            gap: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            min-height: 0;
         }
         
-        /* left panel removed */
+        /* Sidebar Styles */
+        .sidebar-features {
+            width: 280px;
+            min-width: 280px;
+            background: linear-gradient(180deg, #1a1f2e 0%, #0f1419 100%);
+            border-right: 1px solid #2a2f3e;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
         
+        .sidebar-features::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar-features::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .sidebar-features::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+        
+        .sidebar-features::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #2a2f3e;
+            background: rgba(255,255,255,0.02);
+        }
+        
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #e5e7eb;
+        }
+        
+        .sidebar-section {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .sidebar-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #9ca3af;
+            margin: 0 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .feature-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .feature-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: #e5e7eb;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            width: 100%;
+        }
+        
+        .feature-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(34,197,94,0.5);
+            transform: translateX(4px);
+        }
+        
+        .feature-btn .icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        
+        .upload-btn {
+            position: relative;
+        }
+        
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .file-list-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #9ca3af;
+            margin: 0 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #d1d5db;
+        }
+        
+        .file-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-item-remove {
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 14px;
+        }
+        
+        .file-item-remove:hover {
+            color: #dc2626;
+        }
+        
+        /* Chat Panel */
         .chat-panel {
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            background: #0b0e11;
         }
         
         .chat-panel .card {
             height: 100%;
             display: flex;
             flex-direction: column;
+            border-radius: 0;
+            border: none;
+            background: #0b0e11;
         }
         
         .chat-container {
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+            min-height: 0;
+            height: 100%;
         }
         
         .chat-messages {
-            flex: 1;
-            max-height: none;
-            min-height: 600px;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 20px;
+            background: #0b0e11;
             display: flex;
             flex-direction: column;
-            padding-bottom: 10px;
+            min-width: 0;
+            min-height: 0;
+            height: 100%;
         }
         
         /* Chat Effects and Animations */
@@ -385,61 +701,83 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 0 14px 0;
-            border-bottom: 1px solid #eee;
-            margin-bottom: 10px;
+            padding: 20px 24px;
+            border-bottom: 1px solid #2a2f3e;
+            background: #111827;
         }
+        
         .chat-header .title {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-weight: 700;
             font-size: 18px;
+            color: #e5e7eb;
         }
+        
         .status {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             font-size: 12px;
-            color: #28a745;
+            color: #22c55e;
+            font-weight: 500;
         }
+        
         .status-dot {
             width: 8px;
             height: 8px;
-            background: #28a745;
+            background: #22c55e;
             border-radius: 50%;
-            box-shadow: 0 0 0 0 rgba(40,167,69,0.6);
+            box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
             animation: pulseDot 1.6s infinite;
         }
+        
         @keyframes pulseDot {
-            0% { box-shadow: 0 0 0 0 rgba(40,167,69,0.6); }
-            70% { box-shadow: 0 0 0 8px rgba(40,167,69,0); }
-            100% { box-shadow: 0 0 0 0 rgba(40,167,69,0); }
+            0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
         }
-        /* Quick replies */
-        .quick-replies {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 8px 0 4px 0;
-        }
-        .quick-replies button {
-            background: #f1f3f5;
-            color: #333;
-            border: 1px solid #e9ecef;
-            border-radius: 16px;
-            padding: 6px 10px;
+        
+        .chat-header .model {
             font-size: 12px;
-            cursor: pointer;
+            color: #9ca3af;
+            font-weight: 500;
         }
-        .quick-replies button:hover { background: #e9ecef; }
+        
+        /* File preview in messages */
+        .message-attachment {
+            margin-top: 8px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .message-attachment img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        
+        .message-attachment-file {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #60a5fa;
+        }
+        
+        .message-attachment-file::before {
+            content: "📄";
+            font-size: 20px;
+        }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header>
         <nav class="navbar">
-            <a href="index.html" class="logo">BTC Dash</a>
+            <a href="index.html" class="logo">Coin Dash</a>
             <ul class="nav-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="dashboard.html">Dashboard</a></li>
@@ -449,61 +787,140 @@
         </nav>
     </header>
 
-    <!-- Main Content -->
-    <main class="container">
-        <h1>AI Chatbot - Gemini Assistant</h1>
-        
-        <!-- Main Chat Layout -->
-        <div class="main-content">
-            <!-- Chat Panel (full width) -->
-            <div class="chat-panel">
-                <div class="card">
-                    <div class="chat-header">
-                        <div class="title">
-                            🤖 Gemini Assistant
-                            <span class="status"><span class="status-dot"></span> Online</span>
+    <!-- Main Content - Fullscreen -->
+    <main class="chatbot-main">
+        <!-- Sidebar -->
+        <aside class="sidebar-features">
+            <div class="sidebar-header">
+                <h2>⚙️ Tính năng</h2>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">📁 File & Hình ảnh</h3>
+                <div class="feature-buttons">
+                    <label class="feature-btn upload-btn" for="fileUpload">
+                        <span class="icon">📄</span>
+                        <span>Tải lên File</span>
+                        <input type="file" id="fileUpload" accept=".txt,.csv,.json,.pdf,.doc,.docx" style="display: none;" onchange="handleFileUpload(event)">
+                    </label>
+                    <label class="feature-btn upload-btn" for="imageUpload">
+                        <span class="icon">🖼️</span>
+                        <span>Tải lên Ảnh</span>
+                        <input type="file" id="imageUpload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                    </label>
+                    <button class="feature-btn" onclick="exportChat()">
+                        <span class="icon">💾</span>
+                        <span>Xuất Chat</span>
+                    </button>
+                    <button class="feature-btn" onclick="importChat()">
+                        <span class="icon">📥</span>
+                        <span>Nhập Chat</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">📊 Phân tích nhanh</h3>
+                <div class="feature-buttons">
+                    <button class="feature-btn" onclick="quickAsk('Cho mình xem xu hướng giá BTC')">
+                        <span class="icon">📈</span>
+                        <span>Xu hướng BTC</span>
+                    </button>
+                    <button class="feature-btn" onclick="quickAsk('Giá trung bình của ETH là bao nhiêu?')">
+                        <span class="icon">💰</span>
+                        <span>Giá TB ETH</span>
+                    </button>
+                    <button class="feature-btn" onclick="quickAsk('Hiển thị correlation heatmap')">
+                        <span class="icon">🔥</span>
+                        <span>Heatmap</span>
+                    </button>
+                    <button class="feature-btn" onclick="quickAsk('Phân tích tổng quan thị trường crypto')">
+                        <span class="icon">📊</span>
+                        <span>Phân tích tổng quan</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">⚡ Công cụ</h3>
+                <div class="feature-buttons">
+                    <button class="feature-btn" onclick="clearHistory()">
+                        <span class="icon">🗑️</span>
+                        <span>Xóa lịch sử</span>
+                    </button>
+                    <button class="feature-btn" onclick="toggleTheme()">
+                        <span class="icon">🌙</span>
+                        <span>Đổi theme</span>
+                    </button>
+                    <button class="feature-btn" onclick="showCapabilities()">
+                        <span class="icon">❓</span>
+                        <span>Hướng dẫn</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="file-list" id="uploadedFiles">
+                    <h4 class="file-list-title">📎 File đã tải</h4>
+                    <div id="fileListContainer"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Chat Panel (full width) -->
+        <div class="chat-panel">
+            <div class="card">
+                <div class="chat-header">
+                    <div class="title">
+                        🤖 Llama Assistant
+                        <span class="status"><span class="status-dot"></span> Online</span>
+                    </div>
+                    <div class="model">v1 • Markdown enabled • File & Image support</div>
+                </div>
+                
+                <!-- Error Message -->
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                
+                <!-- Chat Messages -->
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Bot Welcome Message -->
+                        <div class="message-row">
+                            <div class="avatar bot">AI</div>
+                            <div>
+                                <div class="message bot">
+                                    <h3>Chào mấy coin thủ nhá! 🚀</h3>
+                                    <p>Tôi có thể giúp bạn:</p>
+                                    <ul>
+                                        <li><strong>Phân tích</strong> giá crypto</li>
+                                        <li><em>Dự đoán</em> xu hướng thị trường</li>
+                                        <li>Giải thích các <code>chỉ số kỹ thuật</code></li>
+                                        <li>Tư vấn đầu tư</li>
+                                        <li><strong>Đọc file</strong> CSV, TXT, JSON</li>
+                                        <li><strong>Phân tích ảnh</strong> biểu đồ, charts</li>
+                                    </ul>
+                                    <p>Cần giúp gì tui giúp cho nha! 💰</p>
+                                </div>
+                                <div class="meta">Vừa xong</div>
+                            </div>
                         </div>
-                        <div class="model">v1 • Markdown enabled</div>
                     </div>
                     
-                    <!-- Error Message -->
-                    <div id="errorMessage" class="error-message" style="display: none;"></div>
-                    
-                    <!-- Chat Messages -->
-                        <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages">
-                            <!-- Bot Welcome Message -->
-                            <div class="message-row">
-                                <div class="avatar bot">AI</div>
-                                <div>
-                                    <div class="message bot">
-                                        <h3>Chào mấy coin thủ nhá! 🚀</h3>
-                                        <p>Tôi có thể giúp bạn:</p>
-                                        <ul>
-                                            <li><strong>Phân tích</strong> giá crypto</li>
-                                            <li><em>Dự đoán</em> xu hướng thị trường</li>
-                                            <li>Giải thích các <code>chỉ số kỹ thuật</code></li>
-                                            <li>Tư vấn đầu tư</li>
-                                        </ul>
-                                        <p>Cần giúp gì tui giúp cho nha! 💰</p>
-                                    </div>
-                                    <div class="meta">Vừa xong</div>
-                                </div>
-                            </div>
+                    <!-- Chat Input -->
+                    <div class="chat-input">
+                        <div class="input-actions">
+                            <label class="input-action-btn" for="imageUploadInput" title="Tải ảnh">
+                                🖼️
+                                <input type="file" id="imageUploadInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                            </label>
+                            <label class="input-action-btn" for="fileUploadInput" title="Tải file">
+                                📄
+                                <input type="file" id="fileUploadInput" accept=".txt,.csv,.json,.pdf,.doc,.docx" style="display: none;" onchange="handleFileUpload(event)">
+                            </label>
                         </div>
-                        
-                        <!-- Chat Input -->
-                        <div class="chat-input">
-                            <div class="quick-replies">
-                                <button onclick="quickAsk('Cho mình xem xu hướng giá BTC')">Xu hướng giá BTC</button>
-                                <button onclick="quickAsk('Giá trung bình của ETH là bao nhiêu?')">Giá TB ETH</button>
-                                <button onclick="quickAsk('Hiển thị correlation heatmap')">Heatmap tương quan</button>
-                            </div>
-                            <textarea id="messageInput" placeholder="Type your message..." rows="3"></textarea>
-                            <div class="chat-actions">
-                                <button id="sendButton" onclick="sendMessage()">Send</button>
-                                <button id="clearHistoryButton" class="small" onclick="clearHistory()" title="Xóa lịch sử chat">🗑 Xóa lịch sử</button>
-                            </div>
+                        <textarea id="messageInput" placeholder="Nhập tin nhắn... (Shift+Enter để xuống dòng)" rows="3"></textarea>
+                        <div class="chat-actions">
+                            <button id="sendButton" onclick="sendMessage()">Gửi</button>
                         </div>
                     </div>
                 </div>
@@ -511,8 +928,8 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer>
+    <!-- Footer - Hidden for fullscreen -->
+    <footer style="display: none;">
         <p>Code by Mital</p>
     </footer>
 
@@ -561,6 +978,8 @@ Lưu ý: hãy trả lời kết hợp với việc sử dụng dữ liệu liên
         let csvData = null; // optional dataset cache
         let contextInjected = false;
         let systemInjected = false;
+        let uploadedFiles = []; // Store uploaded files info
+        let currentAttachments = []; // Store current message attachments (files/images)
         
         // Allow Enter key to send message (Shift+Enter for new line)
         document.getElementById('messageInput').addEventListener('keypress', function(e) {
@@ -712,6 +1131,27 @@ Lưu ý: hãy trả lời kết hợp với việc sử dụng dữ liệu liên
                     content: 'You are a professional Data Analyst Assistant. Communicate clearly with structured output. When analyzing data or charts, follow this style:\n\nInsight first\n\nShort explanation\n\nWhen needed, return output formatted in markdown'
                 };
 
+                // Prepare attachments (files/images) for current message
+                const attachments = [];
+                if (currentAttachments.length > 0) {
+                    for (const att of currentAttachments) {
+                        if (att.type === 'image' && att.data) {
+                            attachments.push({
+                                type: 'image',
+                                data: att.data, // base64 data URL
+                                name: att.name
+                            });
+                        } else if (att.type === 'file' && att.content) {
+                            attachments.push({
+                                type: 'file',
+                                content: att.content, // text content
+                                name: att.name,
+                                mimeType: att.mimeType
+                            });
+                        }
+                    }
+                }
+
                 // Call Flask/Ollama backend
                 const response = await fetch(`${BACKEND_URL}/chat`, {
                     method: 'POST',
@@ -719,9 +1159,13 @@ Lưu ý: hãy trả lời kết hợp với việc sử dụng dữ liệu liên
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         message: safeMsg,
-                        history: [systemPersona, ...mappedHistory]
+                        history: [systemPersona, ...mappedHistory],
+                        attachments: attachments.length > 0 ? attachments : undefined
                     })
                 });
+                
+                // Clear attachments after sending
+                currentAttachments = [];
 
                 if (!response.ok) {
                     const errorText = await response.text();
@@ -1139,6 +1583,247 @@ Lưu ý: hãy trả lời kết hợp với việc sử dụng dữ liệu liên
             if (!values.length) return NaN;
             return values.reduce((a,b)=>a+b,0) / values.length;
         }
+
+        // File Upload Handler
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileInfo = {
+                id: Date.now(),
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                file: file,
+                uploadedAt: new Date()
+            };
+
+            uploadedFiles.push(fileInfo);
+            updateFileList();
+
+            // Read file content
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                let preview = '';
+                
+                if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                    preview = `📄 File CSV: ${file.name} (${(file.size/1024).toFixed(2)} KB)\n\nĐã tải lên thành công. Bạn có thể hỏi về dữ liệu trong file này.`;
+                } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
+                    const textPreview = content.substring(0, 500);
+                    preview = `📄 File văn bản: ${file.name}\n\nNội dung:\n${textPreview}${content.length > 500 ? '...' : ''}`;
+                } else if (file.name.endsWith('.json')) {
+                    try {
+                        const jsonData = JSON.parse(content);
+                        preview = `📄 File JSON: ${file.name}\n\nDữ liệu đã được tải. Số keys: ${Object.keys(jsonData).length}`;
+                    } catch {
+                        preview = `📄 File JSON: ${file.name}\n\nFile đã được tải lên.`;
+                    }
+                } else {
+                    preview = `📄 File: ${file.name} (${(file.size/1024).toFixed(2)} KB)\n\nĐã tải lên thành công.`;
+                }
+
+                // Add to chat
+                addMessage(preview, 'user');
+                chatHistory.push({ role: 'user', parts: [{ text: preview }] });
+                
+                // Store file content for sending to backend
+                currentAttachments.push({
+                    type: 'file',
+                    name: file.name,
+                    content: content,
+                    mimeType: file.type
+                });
+                
+                // Auto-send message with file context
+                const autoMsg = `Tôi đã tải lên file ${file.name}. Hãy phân tích nội dung file này.`;
+                setTimeout(() => {
+                    document.getElementById('messageInput').value = autoMsg;
+                    sendMessage();
+                }, 500);
+            };
+
+            if (file.type.startsWith('text/') || file.name.endsWith('.csv') || file.name.endsWith('.json') || file.name.endsWith('.txt')) {
+                reader.readAsText(file);
+            } else {
+                addMessage(`📄 File ${file.name} đã được tải lên (${(file.size/1024).toFixed(2)} KB)`, 'user');
+                chatHistory.push({ role: 'user', parts: [{ text: `File ${file.name} uploaded` }] });
+            }
+
+            // Reset input
+            event.target.value = '';
+        }
+
+        // Image Upload Handler
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Vui lòng chọn file ảnh!');
+                return;
+            }
+
+            const fileInfo = {
+                id: Date.now(),
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                file: file,
+                uploadedAt: new Date()
+            };
+
+            uploadedFiles.push(fileInfo);
+            updateFileList();
+
+            // Read image as base64
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageData = e.target.result;
+                
+                // Create preview in chat
+                const previewHtml = `
+                    <div class="message-attachment">
+                        <p><strong>🖼️ Ảnh đã tải:</strong> ${file.name}</p>
+                        <img src="${imageData}" alt="${file.name}" style="max-width: 100%; border-radius: 8px; margin-top: 8px;">
+                    </div>
+                `;
+
+                // Add to chat
+                const chatMessages = document.getElementById('chatMessages');
+                const row = document.createElement('div');
+                row.className = 'message-row right';
+                row.innerHTML = `
+                    <div style="flex: 1; display: flex; justify-content: flex-end;">
+                        <div class="message user" style="max-width: 70%;">
+                            ${previewHtml}
+                            <div class="meta">${formatTime(new Date())}</div>
+                        </div>
+                    </div>
+                    <div class="avatar user">You</div>
+                `;
+                chatMessages.appendChild(row);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                chatHistory.push({ 
+                    role: 'user', 
+                    parts: [{ 
+                        text: `[Image uploaded: ${file.name}]`,
+                        imageData: imageData 
+                    }] 
+                });
+
+                // Store image data for sending to backend
+                currentAttachments.push({
+                    type: 'image',
+                    name: file.name,
+                    data: imageData, // base64 data URL
+                    mimeType: file.type
+                });
+
+                // Auto-send analysis request
+                const autoMsg = `Hãy phân tích ảnh này: ${file.name}`;
+                setTimeout(() => {
+                    document.getElementById('messageInput').value = autoMsg;
+                    sendMessage();
+                }, 500);
+            };
+
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        // Update file list in sidebar
+        function updateFileList() {
+            const container = document.getElementById('fileListContainer');
+            if (!container) return;
+
+            container.innerHTML = '';
+            
+            if (uploadedFiles.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; font-size: 12px; margin: 0;">Chưa có file nào</p>';
+                return;
+            }
+
+            uploadedFiles.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span class="file-item-name" title="${file.name}">${file.name}</span>
+                    <button class="file-item-remove" onclick="removeFile(${file.id})" title="Xóa">×</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Remove file
+        function removeFile(fileId) {
+            uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
+            updateFileList();
+        }
+
+        // Export chat history
+        function exportChat() {
+            const dataStr = JSON.stringify(chatHistory, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `chat-history-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            addMessage('✅ Đã xuất lịch sử chat thành công!', 'bot');
+        }
+
+        // Import chat history
+        function importChat() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (Array.isArray(imported)) {
+                            chatHistory = imported;
+                            // Clear and reload
+                            const chatMessages = document.getElementById('chatMessages');
+                            chatMessages.innerHTML = '';
+                            loadHistoryFromStorage();
+                            addMessage('✅ Đã nhập lịch sử chat thành công!', 'bot');
+                        }
+                    } catch (err) {
+                        alert('Lỗi khi đọc file: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // Toggle theme (placeholder)
+        function toggleTheme() {
+            addMessage('🌙 Tính năng đổi theme đang được phát triển!', 'bot');
+        }
+
+        // Show capabilities
+        function showCapabilities() {
+            const capabilities = buildCapabilitiesMessage();
+            addMessage(capabilities, 'bot');
+            chatHistory.push({ role: 'user', parts: [{ text: 'Hướng dẫn' }] });
+            chatHistory.push({ role: 'model', parts: [{ text: capabilities }] });
+            saveHistoryToStorage();
+        }
+
+        // Initialize file list on load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateFileList();
+        });
     </script>
 </body>
 </html>

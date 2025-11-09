@@ -3,15 +3,516 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BTC Dash - Crypto Dashboard</title>
+    <title>Coin Dash</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://unpkg.com/papaparse@5/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* SSI iBoard Inspired Dark Mode */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Main Table Container */
+        .table-container {
+            background-color: #0f172a;
+            border-radius: 8px;
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            max-width: 100%;
+        }
+
+        /* Search and Filter Bar */
+        .search-filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 16px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #22c55e;
+        }
+
+        .search-input::placeholder {
+            color: #64748b;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 16px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background-color: #334155;
+        }
+
+        .filter-btn.active {
+            background-color: #22c55e;
+            border-color: #22c55e;
+        }
+
+        .sort-btn {
+            padding: 10px 16px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .sort-btn:hover {
+            background-color: #334155;
+        }
+
+        .sort-btn.active {
+            background-color: #60a5fa;
+            border-color: #60a5fa;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: #0f172a;
+            font-size: 16px;
+        }
+
+        .data-table th {
+            background-color: #1e293b;
+            color: #ffffff;
+            padding: 18px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #334155;
+            border-right: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 15px;
+        }
+
+        .data-table th:last-child {
+            border-right: none;
+        }
+
+        .data-table td {
+            padding: 20px 12px;
+            border-bottom: 1px solid #1e293b;
+            border-right: 1px solid #334155;
+            color: #ffffff;
+            position: relative;
+            font-size: 15px;
+        }
+
+        .data-table td:last-child {
+            border-right: none;
+        }
+
+        .data-table tr:hover {
+            background-color: #1e293b;
+        }
+
+        /* Symbol Column - Clickable with Sparkline */
+        .symbol-cell {
+            font-weight: 600;
+            color: #60a5fa;
+            cursor: pointer;
+            transition: color 0.2s;
+            display: inline-block;
+            position: relative;
+        }
+
+        .symbol-cell:hover {
+            color: #22c55e;
+            text-decoration: underline;
+        }
+
+        /* Inline Sparkline Chart Container - Fixed Position to avoid table expansion */
+        .sparkline-container {
+            position: fixed !important;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 10px;
+            z-index: 10000;
+            width: 200px !important;
+            max-width: 200px !important;
+            min-width: 200px !important;
+            height: 90px !important;
+            max-height: 90px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            overflow: hidden;
+            margin: 0 !important;
+            opacity: 0;
+            visibility: hidden;
+            left: -9999px !important;
+            top: -9999px !important;
+            transition: opacity 0.2s ease;
+        }
+
+        .sparkline-container.show {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .sparkline-chart {
+            width: 180px;
+            height: 60px;
+        }
+
+        .sparkline-label {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        /* Price Colors - More vibrant */
+        .price-up {
+            color: #22c55e;
+            font-weight: 600;
+        }
+
+        .price-down {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .price-neutral {
+            color: #9ca3af;
+        }
+
+        /* % Change Column - Dynamic Coloring - More vibrant */
+        .pct-change {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .pct-change.low {
+            color: #9ca3af;
+        }
+
+        .pct-change.medium {
+            color: #60a5fa;
+            font-weight: 700;
+        }
+
+        .pct-change.high {
+            color: #22c55e;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+        }
+
+        .pct-change.high-negative {
+            color: #ef4444;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Volume Column */
+        .volume-cell {
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1e293b;
+            color: #ffffff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            border: 1px solid #334155;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        /* Auto Refresh Indicator */
+        .refresh-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #9ca3af;
+            z-index: 1000;
+        }
+
+        .refresh-indicator.active {
+            color: #22c55e;
+        }
+
+        /* Last Update Timestamp */
+        .last-update {
+            text-align: right;
+            padding: 10px 20px;
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .data-table {
+                font-size: 11px;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 4px;
+            }
+
+            .search-filter-bar {
+                flex-direction: column;
+            }
+
+            .filter-buttons {
+                width: 100%;
+            }
+
+            .filter-btn,
+            .sort-btn {
+                flex: 1;
+            }
+
+            .sparkline-container {
+                min-width: 150px;
+            }
+
+            .sparkline-chart {
+                width: 130px;
+                height: 50px;
+            }
+        }
+
+        /* Scrollbar Styling */
+        .table-wrapper {
+            overflow-x: auto;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+
+        /* Prevent table from expanding */
+        .data-table {
+            table-layout: fixed;
+        }
+
+        .data-table td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .table-wrapper::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Full Screen Layout */
+        main.container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+            margin: 0;
+            max-width: 100%;
+        }
+
+        /* Header adjustments for full screen */
+        header {
+            flex-shrink: 0;
+        }
+
+        /* Footer adjustments */
+        footer {
+            flex-shrink: 0;
+        }
+
+        /* Table container title */
+        .table-container h1 {
+            flex-shrink: 0;
+            margin-bottom: 15px;
+        }
+
+        /* Search filter bar */
+        .search-filter-bar {
+            flex-shrink: 0;
+        }
+
+        /* Last update timestamp */
+        .last-update {
+            flex-shrink: 0;
+        }
+
+        /* Charts Section Above Table */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-shrink: 0;
+        }
+
+        .chart-card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .chart-card h3 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+
+        .chart-card canvas {
+            max-height: 150px;
+            height: 150px !important;
+            width: 100% !important;
+            display: block;
+        }
+
+        .chart-card {
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-shrink: 0;
+        }
+
+        .metric-card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .metric-card .metric-label {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-bottom: 8px;
+        }
+
+        .metric-card .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .metric-card .metric-value.positive {
+            color: #22c55e;
+        }
+
+        .metric-card .metric-value.negative {
+            color: #ef4444;
+        }
+
+        .metric-card .metric-change {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
 </head>
 <body>
     <!-- Header -->
     <header>
         <nav class="navbar">
-            <a href="index.html" class="logo">BTC Dash</a>
+            <a href="index.html" class="logo">Coin Dash</a>
             <ul class="nav-menu">
                 <li><a href="index.html" class="active">Home</a></li>
                 <li><a href="dashboard.html">Dashboard</a></li>
@@ -23,99 +524,153 @@
 
     <!-- Main Content -->
     <main class="container">
-        <!-- Hero Section -->
-        <section class="hero">
-            <h1>Bitcoin Realtime Dashboard (Mockup)</h1>
-            <p>Monitor Bitcoin prices, analyze market trends, and get AI-powered insights in one comprehensive dashboard.</p>
-        </section>
-
-        <!-- Main Grid Layout -->
-        <div class="main-content">
-            <!-- Left Column - Main Cards -->
-            <div>
-                <!-- Cards Grid -->
-                <div class="grid grid-4">
-                    <!-- Card 1: Crypto Prices Overview -->
-                    <div class="card">
-                        <h3>📊 Latest Prices</h3>
-                        <div id="cryptoPrices" class="placeholder">
-                            <p style="color: #9ca3af;">Loading data...</p>
-                        </div>
-                    </div>
-
-                    <!-- Card 2: Top Gainers -->
-                    <div class="card">
-                        <h3>Top Gainers (24h)</h3>
-                        <div id="topGainers" class="placeholder">
-                            <p style="color: #9ca3af;">Loading data...</p>
-                        </div>
-                    </div>
-
-                    <!-- Card 3: Market Stats -->
-                    <div class="card">
-                        <h3>Market Stats (Latest)</h3>
-                        <table id="marketStats">
-                            <tr>
-                                <td class="muted">Loading...</td>
-                                <td class="accent">--</td>
-                            </tr>
-                        </table>
-                    </div>
-
-                    <!-- Card 4: Sentiment & Trends -->
-                    <div class="card">
-                        <h3>Sentiment & Trends</h3>
-                        
-                        <!-- Sentiment will be loaded here -->
-                        <div id="sentiment" class="placeholder">
-                            <p style="color: #9ca3af;">Loading sentiment data...</p>
-                        </div>
-
-                        <!-- Bullet Points -->
-                        <ul class="bullet-list" id="sentimentBullets">
-                            <li>Loading market data...</li>
-                        </ul>
-                    </div>
+        <div class="table-container">
+            <h1 style="margin-bottom: 20px; color: #ffffff;">Crypto Realtime Dashboard</h1>
+            
+            <!-- Metrics Cards Section -->
+            <div class="metrics-grid" id="metricsGrid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Market Cap</div>
+                    <div class="metric-value" id="totalMarketCap">--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Total Volume (24h)</div>
+                    <div class="metric-value" id="totalVolume">--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Average Change</div>
+                    <div class="metric-value" id="avgChange">--</div>
+                    <div class="metric-change" id="avgChangeSign"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Active Coins</div>
+                    <div class="metric-value" id="activeCoins">5</div>
                 </div>
             </div>
 
-            <!-- Right Sidebar -->
-            <aside class="sidebar">
-                <h3>Quick Links</h3>
-                <ul class="quick-links">
-                    <li><a href="dashboard.html">📊 View Dashboard</a></li>
-                    <li><a href="chart.html">📉 View Charts</a></li>
-                    <li><a href="chatbot.html">🤖 Ask with AI</a></li>
-                </ul>
+            <!-- Charts Section -->
+            <div class="charts-section" id="chartsSection">
+                <div class="chart-card">
+                    <h3>Price Trend (Last 7 Days)</h3>
+                    <div style="position: relative; height: 150px; width: 100%;">
+                        <canvas id="priceTrendChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Volume Comparison</h3>
+                    <div style="position: relative; height: 150px; width: 100%;">
+                        <canvas id="volumeChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Market Dominance</h3>
+                    <div style="position: relative; height: 150px; width: 100%;">
+                        <canvas id="dominanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search and Filter Bar -->
+            <div class="search-filter-bar">
+                <input type="text" 
+                       id="searchInput" 
+                       class="search-input" 
+                       placeholder="🔍 Tìm kiếm coin (BTC, ETH, BNB, SOL, XRP...)"
+                       oninput="filterTable()">
+                
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="setFilter('all')">Tất cả</button>
+                    <button class="filter-btn" onclick="setFilter('gainers')">Top Gainers</button>
+                    <button class="filter-btn" onclick="setFilter('losers')">Top Losers</button>
+                    <button class="filter-btn" onclick="setFilter('highVolume')">High Volume</button>
+                </div>
 
-                <h3 class="mt-24">Notes</h3>
-                <p class="muted">
-                    This is a mockup interface demonstrating the layout and design for a Bitcoin dashboard. 
-                    All data shown is placeholder content for demonstration purposes only.
-                </p>
-                <p class="muted">
-                    Real-time data integration and interactive charts will be implemented in future versions.
-                </p>
-            </aside>
+                <div class="filter-buttons">
+                    <span style="color: #9ca3af; padding: 10px 8px;">Sắp xếp:</span>
+                    <button class="sort-btn" onclick="sortTable('pctChange')">% Change</button>
+                    <button class="sort-btn" onclick="sortTable('volume')">Volume</button>
+                    <button class="sort-btn" onclick="sortTable('funding')">Funding Rate</button>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="table-wrapper">
+                <table class="data-table" id="cryptoTable">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Open</th>
+                            <th>High</th>
+                            <th>Low</th>
+                            <th>Close</th>
+                            <th>% Change</th>
+                            <th>Volume</th>
+                            <th>Funding Rate</th>
+                            <th>Sentiment</th>
+                            <th>Fear/Greed</th>
+                            <th>Market Cap</th>
+                            <th>Volatility</th>
+                            <th>Hash Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="13" class="loading">⏳ Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Last Update Timestamp -->
+            <div class="last-update" id="lastUpdate">
+                Cập nhật lần cuối: --
+            </div>
         </div>
     </main>
+
+    <!-- Refresh Indicator -->
+    <div class="refresh-indicator" id="refreshIndicator">
+        Auto-refresh: <span id="refreshCountdown">30</span>s
+    </div>
+
+    <!-- Sparkline Container - Outside table to avoid layout issues -->
+    <div class="sparkline-container" id="sparklineContainer">
+        <div class="sparkline-label" id="sparklineLabel">--</div>
+        <canvas id="sparklineCanvas" class="sparkline-chart"></canvas>
+    </div>
 
     <!-- Footer -->
     <footer>
         <p>Multi-Symbol Crypto Dashboard — Live Data</p>
     </footer>
-    
+
     <script>
+        // Global variables
         let allData = [];
         let latestData = {};
+        let filteredData = [];
+        let currentFilter = 'all';
+        let currentSort = null;
+        let sortDirection = 'desc';
+        let refreshInterval = null;
+        let countdownInterval = null;
+        let sparklineCharts = {}; // Store sparkline chart instances
         
-        // Load CSV data
+        // Chart instances - must be declared globally
+        let priceTrendChart = null;
+        let volumeChartMain = null;
+        let dominanceChart = null;
+
+        /**
+         * Load CSV data from multiple possible paths
+         */
         function loadData() {
-            // Try multiple paths for different deployment scenarios
             const csvPaths = [
-                '../data/dataset_total_clean.csv',  // Local development
-                'data/dataset_total_clean.csv',     // GitHub Pages from root
-                '/BTC_BIT-main/data/dataset_total_clean.csv'  // GitHub Pages with repo name
+                '../data/dataset_total_clean.csv',
+                'data/dataset_total_clean.csv',
+                '/data/dataset_total_clean.csv',
+                '/BTC_BIT-main/data/dataset_total_clean.csv',
+                '/BTC_Dashboard-main/data/dataset_total_clean.csv'
             ];
             
             let currentPathIndex = 0;
@@ -127,9 +682,21 @@
                     header: true,
                     dynamicTyping: true,
                     complete: (results) => {
+                        console.log('CSV loaded successfully, rows:', results.data.length);
                         allData = results.data.filter(row => row.symbol && row.Close && row.Date);
+                        console.log('Filtered data rows:', allData.length);
                         processData();
+                        console.log('Processed latestData:', latestData);
+                        updateLastUpdateTime(); // Update timestamp first
                         displayData();
+                        updateMetrics();
+                        // Delay charts update to ensure DOM is ready
+                        setTimeout(() => {
+                            updateCharts();
+                        }, 200);
+                        if (!refreshInterval) {
+                            startAutoRefresh();
+                        }
                     },
                     error: (error) => {
                         console.error(`Error loading CSV from ${path}:`, error);
@@ -137,8 +704,8 @@
                         if (currentPathIndex < csvPaths.length) {
                             tryLoadCSV();
                         } else {
-                            document.getElementById('marketStats').innerHTML = 
-                                '<tr><td colspan="2" style="color: var(--danger);">Error loading data. Please refresh.</td></tr>';
+                            document.getElementById('tableBody').innerHTML = 
+                                '<tr><td colspan="13" style="color: #ef4444; text-align: center;">❌ Lỗi: Không thể tải dữ liệu CSV. Vui lòng làm mới trang.</td></tr>';
                         }
                     }
                 });
@@ -146,213 +713,1027 @@
             
             tryLoadCSV();
         }
-        
-        // Process data to get latest for each symbol
+
+        /**
+         * Process data to get latest for each symbol
+         */
         function processData() {
             const symbols = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP'];
+            latestData = {};
             
             symbols.forEach(symbol => {
                 const symbolData = allData.filter(row => row.symbol === symbol);
                 if (symbolData.length > 0) {
-                    // Sort by date and get latest
                     symbolData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
                     latestData[symbol] = symbolData[0];
                 }
             });
         }
-        
-        // Display processed data
+
+        /**
+         * Format number with thousand separators
+         */
+        function formatNumber(num) {
+            if (num === null || num === undefined || isNaN(num)) return 'N/A';
+            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        /**
+         * Format large numbers (Volume, Market Cap)
+         */
+        function formatVolume(num) {
+            if (num === null || num === undefined || isNaN(num)) return 'N/A';
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return num.toFixed(2);
+        }
+
+        /**
+         * Calculate % Change between current and previous day
+         */
+        function calculatePctChange(symbol) {
+            const symbolData = allData.filter(row => row.symbol === symbol);
+            if (symbolData.length < 2) return 0;
+            
+            symbolData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+            const current = symbolData[0].Close;
+            const previous = symbolData[1].Close;
+            
+            if (!current || !previous) return 0;
+            return ((current - previous) / previous) * 100;
+        }
+
+        /**
+         * Calculate Market Cap: Close * Volume
+         */
+        function calculateMarketCap(close, volume) {
+            if (!close || !volume || close === 0 || volume === 0) return 0;
+            return close * volume;
+        }
+
+        /**
+         * Calculate Volatility: standard deviation of log returns in last 7 days
+         */
+        function calculateVolatility(symbol) {
+            const symbolData = allData.filter(row => row.symbol === symbol);
+            if (symbolData.length < 2) return 0;
+            
+            symbolData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+            const last7Days = symbolData.slice(0, Math.min(7, symbolData.length));
+            
+            // Calculate log returns
+            const logReturns = [];
+            for (let i = 0; i < last7Days.length - 1; i++) {
+                const current = last7Days[i].Close;
+                const previous = last7Days[i + 1].Close;
+                if (current && previous && previous > 0) {
+                    logReturns.push(Math.log(current / previous));
+                }
+            }
+            
+            if (logReturns.length === 0) return 0;
+            
+            // Calculate mean
+            const mean = logReturns.reduce((a, b) => a + b, 0) / logReturns.length;
+            
+            // Calculate standard deviation
+            const variance = logReturns.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / logReturns.length;
+            const stdDev = Math.sqrt(variance);
+            
+            // Return as percentage
+            return stdDev * 100;
+        }
+
+        /**
+         * Get % Change class for styling
+         */
+        function getPctChangeClass(pct) {
+            const absPct = Math.abs(pct);
+            if (absPct < 1) return 'low';
+            if (absPct < 3) return 'medium';
+            return pct >= 0 ? 'high' : 'high-negative';
+        }
+
+        /**
+         * Get 7-day price data for sparkline chart
+         */
+        function getSparklineData(symbol) {
+            const symbolData = allData.filter(row => row.symbol === symbol);
+            if (symbolData.length === 0) return [];
+            
+            symbolData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            const last7Days = symbolData.slice(-7);
+            
+            return last7Days.map(d => d.Close || 0);
+        }
+
+        /**
+         * Create sparkline chart using Chart.js
+         */
+        function createSparklineChart(canvasId, data, symbol) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.error('Canvas not found:', canvasId);
+                return null;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart if any
+            if (sparklineCharts[canvasId]) {
+                sparklineCharts[canvasId].destroy();
+            }
+            
+            // Destroy current chart if exists
+            if (currentSparklineChart) {
+                currentSparklineChart.destroy();
+                currentSparklineChart = null;
+            }
+            
+            // Determine color based on trend
+            const firstPrice = data[0];
+            const lastPrice = data[data.length - 1];
+            const isUp = lastPrice >= firstPrice;
+            const borderColor = isUp ? '#22c55e' : '#ef4444';
+            const bgColor = isUp ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+            
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map((_, i) => i),
+                    datasets: [{
+                        label: 'Close',
+                        data: data,
+                        borderColor: borderColor,
+                        backgroundColor: bgColor,
+                        borderWidth: 2,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 3,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+            
+            sparklineCharts[canvasId] = chart;
+            return chart;
+        }
+
+        /**
+         * Display data in table
+         */
         function displayData() {
-            displayMarketStats();
-            displayCryptoPrices();
-            displayTopGainers();
-            displaySentiment();
-        }
-        
-        // Display market stats for BTC (primary)
-        function displayMarketStats() {
-            const btc = latestData['BTC'];
-            if (!btc) return;
+            const tbody = document.getElementById('tableBody');
             
-            // Get previous day data
-            const btcData = allData.filter(row => row.symbol === 'BTC');
-            btcData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
-            
-            const lastPrice = btc.Close;
-            const prevPrice = btcData[1] ? btcData[1].Close : lastPrice;
-            const change24h = ((lastPrice - prevPrice) / prevPrice * 100).toFixed(2);
-            const volume24h = btc.Volume ? (btc.Volume / 1e9).toFixed(2) + 'B' : 'N/A';
-            
-            document.getElementById('marketStats').innerHTML = `
-                <tr>
-                    <td class="muted">Symbol</td>
-                    <td class="accent">BTC</td>
-                </tr>
-                <tr>
-                    <td class="muted">Price</td>
-                    <td class="accent">$${lastPrice.toFixed(2)}</td>
-                </tr>
-                <tr>
-                    <td class="muted">24h Change</td>
-                    <td class="${change24h >= 0 ? 'accent' : 'danger'}">${change24h >= 0 ? '+' : ''}${change24h}%</td>
-                </tr>
-                <tr>
-                    <td class="muted">24h Volume</td>
-                    <td>$${volume24h}</td>
-                </tr>
-                <tr>
-                    <td class="muted">Date</td>
-                    <td>${new Date(btc.Date).toLocaleDateString()}</td>
-                </tr>
-            `;
-        }
-        
-        // Display crypto prices overview
-        function displayCryptoPrices() {
-            const symbols = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP'];
-            let html = '<table style="width: 100%;">';
-            
-            symbols.forEach(symbol => {
-                const data = latestData[symbol];
-                if (data) {
-                    const price = data.Close ? data.Close.toFixed(2) : 'N/A';
-                    html += `
-                        <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 8px 0;"><strong>${symbol}</strong></td>
-                            <td style="text-align: right; color: var(--accent);">$${price}</td>
-                        </tr>
-                    `;
-                }
-            });
-            
-            html += '</table>';
-            document.getElementById('cryptoPrices').innerHTML = html;
-        }
-        
-        // Display top gainers
-        function displayTopGainers() {
-            const symbols = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP'];
-            const changes = [];
-            
-            symbols.forEach(symbol => {
-                const data = latestData[symbol];
-                if (!data) return;
+            // If filteredData is empty, rebuild it (with search term)
+            if (filteredData.length === 0) {
+                filteredData = Object.keys(latestData).map(symbol => ({
+                    symbol: symbol,
+                    data: latestData[symbol],
+                    pctChange: calculatePctChange(symbol),
+                    marketCap: 0,
+                    volatility: 0,
+                    hashRate: 0
+                })).filter(item => searchTerm === '' || item.symbol.toLowerCase().includes(searchTerm));
                 
-                const symbolData = allData.filter(row => row.symbol === symbol);
-                symbolData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+                // Calculate additional metrics
+                filteredData.forEach(item => {
+                    const d = item.data;
+                    item.marketCap = calculateMarketCap(d.Close, d.Volume);
+                    item.volatility = calculateVolatility(item.symbol);
+                    item.hashRate = d.hash_rate || d.hash_Rate || 0;
+                });
                 
-                if (symbolData.length > 1) {
-                    const current = symbolData[0].Close;
-                    const previous = symbolData[1].Close;
-                    const change = ((current - previous) / previous * 100);
-                    
-                    changes.push({
-                        symbol: symbol,
-                        change: change,
-                        price: current
-                    });
+                // Apply current filter
+                applyFilter();
+                
+                // Apply current sort
+                if (currentSort) {
+                    applySort(currentSort);
                 }
-            });
-            
-            // Sort by change descending
-            changes.sort((a, b) => b.change - a.change);
-            
-            let html = '<table style="width: 100%;">';
-            changes.slice(0, 3).forEach(item => {
+            }
+
+            // Generate table rows
+            let html = '';
+            filteredData.forEach((item, index) => {
+                const d = item.data;
+                const pct = item.pctChange;
+                const pctClass = getPctChangeClass(pct);
+                
+                const open = d.Open || 0;
+                const high = d.High || 0;
+                const low = d.Low || 0;
+                const close = d.Close || 0;
+                const volume = d.Volume || 0;
+                const fundingRate = d.funding_Rate || d.funding_rate || 0;
+                // REMOVED: sentiment_mix - not available
+                const sentiment = 50; // Default neutral value
+                const fearGreed = d.fear_greed_index || 50;
+                const marketCap = item.marketCap || 0;
+                const volatility = item.volatility || 0;
+                const hashRate = item.hashRate || 0;
+
+                // Determine price color based on change
+                const openColor = open <= close ? 'price-up' : 'price-down';
+                const highColor = high >= close ? 'price-up' : 'price-down';
+                const lowColor = low <= close ? 'price-up' : 'price-down';
+                const closeColor = pct >= 0 ? 'price-up' : (pct < 0 ? 'price-down' : 'price-neutral');
+
+                const sparklineId = `sparkline-${item.symbol}-${index}`;
+                const canvasId = `canvas-${item.symbol}-${index}`;
+
                 html += `
-                    <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 8px 0;"><strong>${item.symbol}</strong></td>
-                        <td style="text-align: right; color: ${item.change >= 0 ? 'var(--accent)' : 'var(--danger)'};">
-                            ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%
+                    <tr style="height: auto !important;">
+                        <td style="position: relative; overflow: visible;">
+                            <span class="symbol-cell" 
+                                  data-symbol="${item.symbol}"
+                                  onmouseenter="showSparkline('${item.symbol}', event); return false;"
+                                  onmouseleave="hideSparkline(); return false;"
+                                  onclick="toggleSparkline('${item.symbol}', event); return false;">
+                                ${item.symbol}
+                            </span>
                         </td>
+                        <td class="${openColor}">$${formatNumber(open)}</td>
+                        <td class="${highColor}">$${formatNumber(high)}</td>
+                        <td class="${lowColor}">$${formatNumber(low)}</td>
+                        <td class="${closeColor}">$${formatNumber(close)}</td>
+                        <td class="pct-change ${pctClass}">
+                            ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%
+                        </td>
+                        <td class="volume-cell">$${formatVolume(volume)}</td>
+                        <td class="${fundingRate >= 0 ? 'price-up' : 'price-down'}">
+                            <span class="tooltip">
+                                ${(fundingRate * 100).toFixed(4)}%
+                                <span class="tooltiptext">
+                                    Funding Rate: ${(fundingRate * 100).toFixed(4)}%<br>
+                                    ${fundingRate > 0 ? 'Longs pay shorts' : 'Shorts pay longs'}
+                                </span>
+                            </span>
+                        </td>
+                        <td class="${sentiment >= 60 ? 'price-up' : sentiment >= 40 ? 'price-neutral' : 'price-down'}">
+                            <span class="tooltip">
+                                ${sentiment.toFixed(1)}%
+                                <span class="tooltiptext">
+                                    Sentiment Mix: ${sentiment.toFixed(1)}%<br>
+                                    ${sentiment >= 60 ? 'Bullish' : sentiment >= 40 ? 'Neutral' : 'Bearish'}
+                                </span>
+                            </span>
+                        </td>
+                        <td class="${fearGreed >= 50 ? 'price-up' : 'price-down'}">${fearGreed.toFixed(1)}</td>
+                        <td class="volume-cell price-neutral">$${formatVolume(marketCap)}</td>
+                        <td class="${volatility >= 3 ? 'price-down' : volatility >= 1 ? 'price-neutral' : 'price-up'}">${volatility.toFixed(2)}%</td>
+                        <td class="volume-cell price-neutral">${hashRate > 0 ? formatVolume(hashRate) : 'N/A'}</td>
                     </tr>
                 `;
             });
-            
-            html += '</table>';
-            document.getElementById('topGainers').innerHTML = html;
+
+            if (html === '') {
+                html = '<tr><td colspan="13" style="text-align: center; color: #9ca3af;">Không có dữ liệu phù hợp</td></tr>';
+            }
+
+            tbody.innerHTML = html;
         }
-        
-        // Display sentiment
-        function displaySentiment() {
-            const btc = latestData['BTC'];
-            if (!btc) return;
+
+        // Global sparkline variables
+        let currentSparklineSymbol = null;
+        let currentSparklineChart = null;
+
+        /**
+         * Show sparkline chart on hover - Fixed position (doesn't affect table layout)
+         */
+        function showSparkline(symbol, event) {
+            console.log('showSparkline called for:', symbol);
             
-            // Get sentiment data from dataset
-            const sentiment = btc.sentiment_mix || 50;
-            const fearGreed = btc.fear_greed_index || 50;
-            const trendScore = btc.google_trend_score || 0;
-            const pctChange = btc.pct_change || 0;
-            const volume = btc.Volume || 0;
-            
-            // Calculate trend labels
-            const sentimentLabel = sentiment >= 60 ? 'Bullish' : sentiment >= 40 ? 'Neutral' : 'Bearish';
-            const fearGreedLabel = fearGreed >= 75 ? 'Extreme Greed' : 
-                                   fearGreed >= 55 ? 'Greed' : 
-                                   fearGreed >= 45 ? 'Neutral' : 
-                                   fearGreed >= 25 ? 'Fear' : 'Extreme Fear';
-            
-            // Generate sentiment bullets based on data
-            const bullets = [];
-            if (pctChange > 2) {
-                bullets.push(`📈 Strong bullish momentum (+${pctChange.toFixed(2)}%)`);
-            } else if (pctChange > 0) {
-                bullets.push(`📊 Positive price movement (+${pctChange.toFixed(2)}%)`);
-            } else if (pctChange < -2) {
-                bullets.push(`📉 Significant decline (${pctChange.toFixed(2)}%)`);
-            } else if (pctChange < 0) {
-                bullets.push(`⚠️ Slight bearish pressure (${pctChange.toFixed(2)}%)`);
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
             }
             
-            if (fearGreed >= 70) {
-                bullets.push(`💰 Market sentiment: Extreme Greed`);
-            } else if (fearGreed >= 50) {
-                bullets.push(`📊 Market sentiment: Neutral to Greedy`);
+            const container = document.getElementById('sparklineContainer');
+            const label = document.getElementById('sparklineLabel');
+            const canvas = document.getElementById('sparklineCanvas');
+            
+            if (!container) {
+                console.error('Sparkline container not found');
+                return;
+            }
+            if (!label) {
+                console.error('Sparkline label not found');
+                return;
+            }
+            if (!canvas) {
+                console.error('Sparkline canvas not found');
+                return;
+            }
+            
+            console.log('All elements found, proceeding...');
+            
+            // Get the symbol cell element to calculate position
+            let symbolCell;
+            if (event && event.target) {
+                symbolCell = event.target.closest('.symbol-cell');
             } else {
-                bullets.push(`🎯 Market sentiment: Fear territory`);
+                // Fallback: find by symbol
+                const cells = document.querySelectorAll('.symbol-cell');
+                symbolCell = Array.from(cells).find(cell => cell.textContent.trim() === symbol);
             }
             
-            if (trendScore > 80) {
-                bullets.push(`🔥 High Google search interest`);
-            } else if (trendScore > 50) {
-                bullets.push(`📱 Moderate search interest`);
-            } else {
-                bullets.push(`📉 Lower search interest`);
+            if (!symbolCell) {
+                console.error('Symbol cell not found for:', symbol);
+                return;
             }
             
-            // Update sentiment display
-            document.getElementById('sentiment').innerHTML = `
-                <div class="mb-16">
-                    <div class="muted">Sentiment Mix: <strong>${sentimentLabel}</strong></div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${Math.min(Math.max(sentiment, 0), 100)}%"></div>
-                    </div>
-                    <div class="muted">${sentiment.toFixed(1)}%</div>
-                </div>
-                <div class="mb-16">
-                    <div class="muted">Fear & Greed Index: <strong>${fearGreedLabel}</strong></div>
-                    <div class="progress-bar">
-                        <div class="progress-fill trends" style="width: ${Math.min(Math.max(fearGreed, 0), 100)}%"></div>
-                    </div>
-                    <div class="muted">${fearGreed.toFixed(1)}%</div>
-                </div>
-                <div class="mb-16">
-                    <div class="muted">Google Trend Score</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${Math.min(Math.max(trendScore, 0), 100)}%; background: linear-gradient(90deg, #22c55e, #60a5fa);"></div>
-                    </div>
-                    <div class="muted">${trendScore.toFixed(1)}%</div>
-                </div>
-            `;
+            const rect = symbolCell.getBoundingClientRect();
             
-            // Update bullet points
-            const bulletsList = bullets.map(bullet => `<li>${bullet}</li>`).join('');
-            document.getElementById('sentimentBullets').innerHTML = bulletsList;
+            // Update label
+            label.textContent = `${symbol} - 7 Days Close Price`;
+            
+            // Calculate position
+            let left = rect.left;
+            let top = rect.bottom + 5;
+            
+            // Position the sparkline container relative to the symbol cell
+            container.style.left = left + 'px';
+            container.style.top = top + 'px';
+            container.style.width = '200px';
+            container.style.height = '90px';
+            container.classList.add('show');
+            
+            console.log('Container positioned and shown at:', left, top);
+            
+            // Adjust if sparkline goes off screen
+            setTimeout(() => {
+                const containerRect = container.getBoundingClientRect();
+                
+                if (containerRect.right > window.innerWidth) {
+                    container.style.left = (window.innerWidth - 210) + 'px';
+                }
+                if (containerRect.bottom > window.innerHeight) {
+                    container.style.top = (rect.top - 100) + 'px';
+                }
+            }, 10);
+            
+            // Create or update chart
+            setTimeout(() => {
+                const sparklineData = getSparklineData(symbol);
+                if (sparklineData && sparklineData.length > 0) {
+                    // Destroy existing chart
+                    if (currentSparklineChart && typeof currentSparklineChart.destroy === 'function') {
+                        currentSparklineChart.destroy();
+                        currentSparklineChart = null;
+                    }
+                    
+                    // Create new chart
+                    currentSparklineChart = createSparklineChart('sparklineCanvas', sparklineData, symbol);
+                    currentSparklineSymbol = symbol;
+                } else {
+                    console.warn('No sparkline data for symbol:', symbol);
+                }
+            }, 100);
         }
-        
+
+        /**
+         * Hide sparkline chart on mouse leave
+         */
+        function hideSparkline() {
+            const container = document.getElementById('sparklineContainer');
+            if (container && !container.classList.contains('keep-open')) {
+                container.classList.remove('show');
+                // Move off screen to be safe
+                setTimeout(() => {
+                    container.style.left = '-9999px';
+                    container.style.top = '-9999px';
+                }, 200);
+            }
+        }
+
+        /**
+         * Toggle sparkline chart on click - Fixed position (doesn't affect table layout)
+         */
+        function toggleSparkline(symbol, event) {
+            const container = document.getElementById('sparklineContainer');
+            if (!container) return;
+            
+            const symbolCell = event.target.closest('.symbol-cell');
+            if (!symbolCell) return;
+            
+            const isActive = symbolCell.classList.contains('active') && container.classList.contains('keep-open');
+            
+            if (isActive) {
+                symbolCell.classList.remove('active');
+                container.classList.remove('keep-open');
+                container.classList.remove('show');
+                // Move off screen
+                container.style.left = '-9999px';
+                container.style.top = '-9999px';
+            } else {
+                symbolCell.classList.add('active');
+                container.classList.add('keep-open');
+                
+                // Get position
+                const rect = symbolCell.getBoundingClientRect();
+                let left = rect.left;
+                let top = rect.bottom + 5;
+                
+                container.style.left = left + 'px';
+                container.style.top = top + 'px';
+                container.style.width = '200px';
+                container.style.height = '90px';
+                container.classList.add('show');
+                
+                // Update label
+                document.getElementById('sparklineLabel').textContent = `${symbol} - 7 Days Close Price`;
+                
+                // Adjust position if needed
+                requestAnimationFrame(() => {
+                    const containerRect = container.getBoundingClientRect();
+                    if (containerRect.right > window.innerWidth) {
+                        container.style.left = (window.innerWidth - 210) + 'px';
+                    }
+                    if (containerRect.bottom > window.innerHeight) {
+                        container.style.top = (rect.top - 100) + 'px';
+                    }
+                });
+                
+                // Create or update chart
+                setTimeout(() => {
+                    const sparklineData = getSparklineData(symbol);
+                    if (sparklineData.length > 0) {
+                        // Destroy existing chart
+                        if (currentSparklineChart) {
+                            currentSparklineChart.destroy();
+                            currentSparklineChart = null;
+                        }
+                        
+                        // Create new chart
+                        currentSparklineChart = createSparklineChart('sparklineCanvas', sparklineData, symbol);
+                        currentSparklineSymbol = symbol;
+                    }
+                }, 50);
+            }
+        }
+
+        /**
+         * Update last update timestamp
+         */
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            
+            const timeStr = `${hours}:${minutes}:${seconds} - ${day}/${month}/${year}`;
+            document.getElementById('lastUpdate').textContent = `Cập nhật lần cuối: ${timeStr}`;
+        }
+
+        /**
+         * Update metrics cards
+         */
+        function updateMetrics() {
+            if (!latestData || Object.keys(latestData).length === 0) return;
+            
+            let totalMarketCap = 0;
+            let totalVolume = 0;
+            let totalPctChange = 0;
+            let count = 0;
+            
+            Object.keys(latestData).forEach(symbol => {
+                const data = latestData[symbol];
+                const marketCap = calculateMarketCap(data.Close, data.Volume);
+                const pctChange = calculatePctChange(symbol);
+                
+                totalMarketCap += marketCap;
+                totalVolume += (data.Volume || 0);
+                totalPctChange += pctChange;
+                count++;
+            });
+            
+            const avgChange = count > 0 ? totalPctChange / count : 0;
+            
+            // Update DOM
+            document.getElementById('totalMarketCap').textContent = '$' + formatVolume(totalMarketCap);
+            document.getElementById('totalVolume').textContent = '$' + formatVolume(totalVolume);
+            
+            const avgChangeEl = document.getElementById('avgChange');
+            const avgChangeSignEl = document.getElementById('avgChangeSign');
+            avgChangeEl.textContent = (avgChange >= 0 ? '+' : '') + avgChange.toFixed(2) + '%';
+            avgChangeEl.className = 'metric-value ' + (avgChange >= 0 ? 'positive' : 'negative');
+            avgChangeSignEl.textContent = avgChange >= 0 ? '↑' : '↓';
+            avgChangeSignEl.style.color = avgChange >= 0 ? '#22c55e' : '#ef4444';
+        }
+
+        /**
+         * Update charts section
+         */
+        function updateCharts() {
+            console.log('updateCharts called');
+            if (!latestData || Object.keys(latestData).length === 0) {
+                console.warn('No latestData available for charts');
+                return;
+            }
+            
+            const symbols = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP'];
+            const colors = ['#22c55e', '#60a5fa', '#f59e0b', '#a855f7', '#ef4444'];
+            
+            console.log('Latest data:', latestData);
+            
+            // Price Trend Chart
+            const priceTrendCtx = document.getElementById('priceTrendChart');
+            if (priceTrendCtx) {
+                const datasets = [];
+                symbols.forEach((symbol, idx) => {
+                    const symbolData = allData.filter(row => row.symbol === symbol);
+                    if (symbolData.length === 0) return;
+                    
+                    symbolData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                    const last7Days = symbolData.slice(-7);
+                    
+                    if (last7Days.length > 0) {
+                        datasets.push({
+                            label: symbol,
+                            data: last7Days.map(d => d.Close || 0),
+                            borderColor: colors[idx],
+                            backgroundColor: colors[idx] + '20',
+                            fill: false,
+                            tension: 0.4,
+                            borderWidth: 2
+                        });
+                    }
+                });
+                
+                if (priceTrendChart && typeof priceTrendChart.destroy === 'function') {
+                    priceTrendChart.destroy();
+                }
+                
+                // Set canvas height - Chart.js requires parent container
+                const priceParent = priceTrendCtx.parentElement;
+                if (priceParent) {
+                    priceParent.style.position = 'relative';
+                    priceParent.style.height = '150px';
+                }
+                priceTrendCtx.style.height = '150px';
+                priceTrendCtx.style.width = '100%';
+                
+                if (datasets.length > 0) {
+                    try {
+                        priceTrendChart = new Chart(priceTrendCtx, {
+                            type: 'line',
+                            data: {
+                                labels: Array(7).fill(''),
+                                datasets: datasets
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { 
+                                        display: true, 
+                                        labels: { color: '#ffffff', font: { size: 10 } },
+                                        position: 'top'
+                                    },
+                                    tooltip: { 
+                                        enabled: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: { display: false },
+                                    y: { 
+                                        ticks: { 
+                                            color: '#9ca3af', 
+                                            font: { size: 10 },
+                                            callback: function(value) {
+                                                return '$' + value.toFixed(0);
+                                            }
+                                        },
+                                        grid: { color: '#334155' }
+                                    }
+                                }
+                            }
+                        });
+                        console.log('Price trend chart created successfully');
+                    } catch (error) {
+                        console.error('Error creating price trend chart:', error);
+                    }
+                } else {
+                    console.warn('No datasets for price trend chart');
+                }
+            } else {
+                console.error('Price trend chart canvas not found');
+            }
+            
+            // Volume Comparison Chart
+            const volumeCtx = document.getElementById('volumeChart');
+            console.log('Volume chart canvas:', volumeCtx);
+            if (volumeCtx) {
+                const volumeData = symbols.map(symbol => {
+                    const data = latestData[symbol];
+                    return data ? (data.Volume || 0) : 0;
+                });
+                
+                console.log('Volume data:', volumeData);
+                
+                if (volumeChartMain && typeof volumeChartMain.destroy === 'function') {
+                    volumeChartMain.destroy();
+                }
+                
+                // Set canvas height - Chart.js requires parent container
+                const volumeParent = volumeCtx.parentElement;
+                if (volumeParent) {
+                    volumeParent.style.position = 'relative';
+                    volumeParent.style.height = '150px';
+                }
+                volumeCtx.style.height = '150px';
+                volumeCtx.style.width = '100%';
+                
+                try {
+                    volumeChartMain = new Chart(volumeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: symbols,
+                        datasets: [{
+                            label: 'Volume',
+                            data: volumeData,
+                            backgroundColor: colors,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { 
+                                enabled: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Volume: $' + formatVolume(context.parsed.y);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { 
+                                ticks: { color: '#9ca3af', font: { size: 10 } },
+                                grid: { display: false }
+                            },
+                            y: { 
+                                ticks: { 
+                                    color: '#9ca3af', 
+                                    font: { size: 10 },
+                                    callback: function(value) {
+                                 return '$' + formatVolume(value);
+                                             }
+                                 },
+                                 grid: { color: '#334155' }
+                             }
+                         }
+                     }
+                 });
+                 console.log('Volume chart created successfully');
+                 } catch (error) {
+                     console.error('Error creating volume chart:', error);
+                 }
+            } else {
+                console.error('Volume chart canvas not found');
+            }
+            
+            // Market Dominance Chart (Pie)
+            const dominanceCtx = document.getElementById('dominanceChart');
+            console.log('Dominance chart canvas:', dominanceCtx);
+            if (dominanceCtx) {
+                const marketCaps = symbols.map(symbol => {
+                    const data = latestData[symbol];
+                    return data ? calculateMarketCap(data.Close, data.Volume) : 0;
+                });
+                const total = marketCaps.reduce((a, b) => a + b, 0);
+                
+                console.log('Market caps:', marketCaps, 'Total:', total);
+                
+                if (dominanceChart && typeof dominanceChart.destroy === 'function') {
+                    dominanceChart.destroy();
+                }
+                
+                // Set canvas height - Chart.js requires parent container
+                const dominanceParent = dominanceCtx.parentElement;
+                if (dominanceParent) {
+                    dominanceParent.style.position = 'relative';
+                    dominanceParent.style.height = '150px';
+                }
+                dominanceCtx.style.height = '150px';
+                dominanceCtx.style.width = '100%';
+                
+                try {
+                    dominanceChart = new Chart(dominanceCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: symbols,
+                        datasets: [{
+                            data: marketCaps,
+                            backgroundColor: colors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true, 
+                                position: 'bottom', 
+                                labels: { 
+                                    color: '#ffffff', 
+                                    font: { size: 10 },
+                                    padding: 8,
+                                    usePointStyle: true
+                                } 
+                            },
+                            tooltip: {
+                                enabled: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed;
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return context.label + ': ' + percentage + '% ($' + formatVolume(value) + ')';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Dominance chart created successfully');
+                } catch (error) {
+                    console.error('Error creating dominance chart:', error);
+                }
+            } else {
+                console.error('Dominance chart canvas not found');
+            }
+        }
+
+        // Search term for filtering
+        let searchTerm = '';
+
+        /**
+         * Filter table by search input
+         */
+        function filterTable() {
+            searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            // Rebuild and display data with search filter
+            filteredData = Object.keys(latestData).map(symbol => ({
+                symbol: symbol,
+                data: latestData[symbol],
+                pctChange: calculatePctChange(symbol),
+                marketCap: 0,
+                volatility: 0,
+                hashRate: 0
+            })).filter(item => searchTerm === '' || item.symbol.toLowerCase().includes(searchTerm));
+            
+            // Calculate additional metrics
+            filteredData.forEach(item => {
+                const d = item.data;
+                item.marketCap = calculateMarketCap(d.Close, d.Volume);
+                item.volatility = calculateVolatility(item.symbol);
+                item.hashRate = d.hash_rate || d.hash_Rate || 0;
+            });
+            
+            // Apply current filter
+            applyFilter();
+            
+            // Apply current sort
+            if (currentSort) {
+                applySort(currentSort);
+            }
+            
+            // Display data
+            displayData();
+        }
+
+        /**
+         * Set filter (all, gainers, losers, highVolume)
+         */
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // Update button states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes('Tất cả') && filter === 'all') {
+                    btn.classList.add('active');
+                } else if (btn.textContent.includes('Gainers') && filter === 'gainers') {
+                    btn.classList.add('active');
+                } else if (btn.textContent.includes('Losers') && filter === 'losers') {
+                    btn.classList.add('active');
+                } else if (btn.textContent.includes('Volume') && filter === 'highVolume') {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Rebuild filtered data with search term
+            filteredData = Object.keys(latestData).map(symbol => ({
+                symbol: symbol,
+                data: latestData[symbol],
+                pctChange: calculatePctChange(symbol),
+                marketCap: 0,
+                volatility: 0,
+                hashRate: 0
+            })).filter(item => searchTerm === '' || item.symbol.toLowerCase().includes(searchTerm));
+            
+            // Calculate additional metrics
+            filteredData.forEach(item => {
+                const d = item.data;
+                item.marketCap = calculateMarketCap(d.Close, d.Volume);
+                item.volatility = calculateVolatility(item.symbol);
+                item.hashRate = d.hash_rate || d.hash_Rate || 0;
+            });
+            
+            // Apply filter
+            applyFilter();
+            
+            // Display data
+            displayData();
+        }
+
+        /**
+         * Apply current filter
+         */
+        function applyFilter() {
+            if (currentFilter === 'all') {
+                // No filtering
+                return;
+            } else if (currentFilter === 'gainers') {
+                filteredData = filteredData.filter(item => item.pctChange > 0);
+                filteredData.sort((a, b) => b.pctChange - a.pctChange);
+            } else if (currentFilter === 'losers') {
+                filteredData = filteredData.filter(item => item.pctChange < 0);
+                filteredData.sort((a, b) => a.pctChange - b.pctChange);
+            } else if (currentFilter === 'highVolume') {
+                filteredData.sort((a, b) => (b.data.Volume || 0) - (a.data.Volume || 0));
+            }
+        }
+
+        /**
+         * Sort table
+         */
+        function sortTable(sortBy) {
+            // Toggle sort direction if clicking same column
+            if (currentSort === sortBy) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort = sortBy;
+                sortDirection = 'desc';
+            }
+
+            // Update button states
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes('% Change') && sortBy === 'pctChange') {
+                    btn.classList.add('active');
+                } else if (btn.textContent.includes('Volume') && sortBy === 'volume') {
+                    btn.classList.add('active');
+                } else if (btn.textContent.includes('Funding') && sortBy === 'funding') {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Rebuild filtered data if needed
+            if (filteredData.length === 0) {
+                filteredData = Object.keys(latestData).map(symbol => ({
+                    symbol: symbol,
+                    data: latestData[symbol],
+                    pctChange: calculatePctChange(symbol),
+                    marketCap: 0,
+                    volatility: 0,
+                    hashRate: 0
+                }));
+                filteredData.forEach(item => {
+                    const d = item.data;
+                    item.marketCap = calculateMarketCap(d.Close, d.Volume);
+                    item.volatility = calculateVolatility(item.symbol);
+                    item.hashRate = d.hash_rate || d.hash_Rate || 0;
+                });
+                applyFilter();
+            }
+
+            applySort(sortBy);
+            displayData();
+        }
+
+        /**
+         * Apply sort
+         */
+        function applySort(sortBy) {
+            if (sortBy === 'pctChange') {
+                filteredData.sort((a, b) => 
+                    sortDirection === 'desc' ? b.pctChange - a.pctChange : a.pctChange - b.pctChange
+                );
+            } else if (sortBy === 'volume') {
+                filteredData.sort((a, b) => 
+                    sortDirection === 'desc' ? 
+                        (b.data.Volume || 0) - (a.data.Volume || 0) : 
+                        (a.data.Volume || 0) - (b.data.Volume || 0)
+                );
+            } else if (sortBy === 'funding') {
+                filteredData.sort((a, b) => {
+                    const aFunding = a.data.funding_Rate || a.data.funding_rate || 0;
+                    const bFunding = b.data.funding_Rate || b.data.funding_rate || 0;
+                    return sortDirection === 'desc' ? bFunding - aFunding : aFunding - bFunding;
+                });
+            }
+        }
+
+        /**
+         * Start auto refresh
+         */
+        function startAutoRefresh() {
+            let countdown = 30;
+            const indicator = document.getElementById('refreshIndicator');
+            const countdownSpan = document.getElementById('refreshCountdown');
+
+            // Update countdown every second
+            countdownInterval = setInterval(() => {
+                countdown--;
+                countdownSpan.textContent = countdown;
+                
+                if (countdown <= 5) {
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                }
+
+                if (countdown <= 0) {
+                    countdown = 30;
+                    indicator.classList.remove('active');
+                    // Reload data
+                    filteredData = []; // Reset to trigger recalculation
+                    // Clear existing charts before reload
+                    if (priceTrendChart && typeof priceTrendChart.destroy === 'function') priceTrendChart.destroy();
+                    if (volumeChartMain && typeof volumeChartMain.destroy === 'function') volumeChartMain.destroy();
+                    if (dominanceChart && typeof dominanceChart.destroy === 'function') dominanceChart.destroy();
+                    priceTrendChart = null;
+                    volumeChartMain = null;
+                    dominanceChart = null;
+                    loadData();
+                }
+            }, 1000);
+
+            // Set up main refresh interval (30 seconds)
+            refreshInterval = setInterval(() => {
+                filteredData = []; // Reset to trigger recalculation
+                // Clear existing charts before reload
+                if (priceTrendChart && typeof priceTrendChart.destroy === 'function') priceTrendChart.destroy();
+                if (volumeChartMain && typeof volumeChartMain.destroy === 'function') volumeChartMain.destroy();
+                if (dominanceChart && typeof dominanceChart.destroy === 'function') dominanceChart.destroy();
+                priceTrendChart = null;
+                volumeChartMain = null;
+                dominanceChart = null;
+                loadData();
+            }, 30000);
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) clearInterval(refreshInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+            // Destroy all sparkline charts
+            Object.values(sparklineCharts).forEach(chart => {
+                if (chart && chart.destroy) chart.destroy();
+            });
         });
     </script>
 </body>
