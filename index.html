@@ -6,6 +6,14 @@
     <title>BTC Dash - Crypto Dashboard</title>
     <meta http-equiv="refresh" content="0; url=frontend/index.html">
     <link rel="canonical" href="frontend/index.html">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script>
+        // Immediate redirect to frontend/index.html with cache busting
+        var timestamp = new Date().getTime();
+        window.location.replace('frontend/index.html?t=' + timestamp);
+    </script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -54,14 +62,18 @@
         <p>Đang chuyển hướng đến dashboard...</p>
         <div class="loader"></div>
         <p style="margin-top: 2rem; font-size: 0.9rem;">
-            <a href="frontend/index.html">Click vào đây nếu không tự động chuyển hướng</a>
+            <a href="frontend/index.html" id="manualLink">Click vào đây nếu không tự động chuyển hướng</a>
         </p>
     </div>
     <script>
-        // Fallback redirect after 1 second
+        // Add timestamp to manual link
+        document.getElementById('manualLink').href = 'frontend/index.html?t=' + new Date().getTime();
+        
+        // Fallback redirect after 0.5 seconds if JavaScript redirect didn't work
         setTimeout(function() {
-            window.location.href = 'frontend/index.html';
-        }, 1000);
+            var timestamp = new Date().getTime();
+            window.location.href = 'frontend/index.html?t=' + timestamp;
+        }, 500);
     </script>
 </body>
 </html>

@@ -12,12 +12,21 @@ pip install -r requirements.txt
 copy env.example .env
 python app.py
 Test nhanh:
+
+
+& 'c:/Users/chand/OneDrive/Ki 4/DAP391m/BTC_Dashboard-main/venv/Scripts/python.exe' -m pip install pytrends
+
+
 PowerShell: Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:5000/chat" -ContentType "application/json" -Body '{"message":"Hello from Flask"}'
 Hoặc dùng file tiện dụng:
 .\ai-backend-flask\start-all.bat (tự mở Flask và ngrok ở bước 3)
 3) Mở public tunnel (ngrok)
 Mở PowerShell 3:
 ngrok http 5000
+
+
+
+
 Copy URL https (ví dụ https://abc123.ngrok-free.app)
 4) Kết nối frontend
 Vanilla HTML (GitHub Pages hoặc chạy file):
@@ -115,3 +124,4 @@ Nếu muốn, tôi có thể chạy thử các lệnh test giúp bạn (bạn ch
 | “So sánh hash rate giữa BTC và ETH.” | → Trả phân tích đúng tiếng Việt. |
 
 ---
+chạy mô hình dữ liệu lõi đưa ra request cho mô hình còn và trả kết quả về chatbot dùng để giao tiếp

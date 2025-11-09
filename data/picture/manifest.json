@@ -1,43 +1,47 @@
 {
-  "GLOBAL": [
-    "waffle_volume_share.png",
-    "area_close_all.png",
-    "bar_avg_close.png",
-    "pie_miner_revenue.png"
-  ],
-  "BTC": [
-    "area_close.png",
-    "bar_weekly_volume.png",
-    "hist_log_return.png",
-    "pie_features_scaled.png",
-    "scatter_funding_vs_close.png"
-  ],
-  "ETH": [
-    "area_close.png",
-    "bar_weekly_volume.png",
-    "hist_log_return.png",
-    "pie_features_scaled.png",
-    "scatter_funding_vs_close.png"
-  ],
-  "BNB": [
-    "area_close.png",
-    "bar_weekly_volume.png",
-    "hist_log_return.png",
-    "pie_features_scaled.png",
-    "scatter_funding_vs_close.png"
-  ],
-  "SOL": [
-    "area_close.png",
-    "bar_weekly_volume.png",
-    "hist_log_return.png",
-    "pie_features_scaled.png",
-    "scatter_funding_vs_close.png"
-  ],
-  "XRP": [
-    "area_close.png",
-    "bar_weekly_volume.png",
-    "hist_log_return.png",
-    "pie_features_scaled.png",
-    "scatter_funding_vs_close.png"
-  ]
+    "BNB": {
+        "charts": {
+            "price_trend": "data/BNB/pic/area_close.png",
+            "volume_weekly": "data/BNB/pic/bar_weekly_volume.png",
+            "volatility": "data/BNB/pic/hist_log_return.png",
+            "composition": "data/BNB/pic/pie_features_scaled.png",
+            "funding_vs_close": "data/BNB/pic/scatter_funding_vs_close.png"
+        }
+    },
+    "BTC": {
+        "charts": {
+            "price_trend": "data/BTC/pic/area_close.png",
+            "volume_weekly": "data/BTC/pic/bar_weekly_volume.png",
+            "volatility": "data/BTC/pic/hist_log_return.png",
+            "composition": "data/BTC/pic/pie_features_scaled.png",
+            "funding_vs_close": "data/BTC/pic/scatter_funding_vs_close.png"
+        }
+    },
+    "ETH": {
+        "charts": {
+            "price_trend": "data/ETH/pic/area_close.png",
+            "volume_weekly": "data/ETH/pic/bar_weekly_volume.png",
+            "volatility": "data/ETH/pic/hist_log_return.png",
+            "composition": "data/ETH/pic/pie_features_scaled.png",
+            "funding_vs_close": "data/ETH/pic/scatter_funding_vs_close.png"
+        }
+    },
+    "SOL": {
+        "charts": {
+            "price_trend": "data/SOL/pic/area_close.png",
+            "volume_weekly": "data/SOL/pic/bar_weekly_volume.png",
+            "volatility": "data/SOL/pic/hist_log_return.png",
+            "composition": "data/SOL/pic/pie_features_scaled.png",
+            "funding_vs_close": "data/SOL/pic/scatter_funding_vs_close.png"
+        }
+    },
+    "XRP": {
+        "charts": {
+            "price_trend": "data/XRP/pic/area_close.png",
+            "volume_weekly": "data/XRP/pic/bar_weekly_volume.png",
+            "volatility": "data/XRP/pic/hist_log_return.png",
+            "composition": "data/XRP/pic/pie_features_scaled.png",
+            "funding_vs_close": "data/XRP/pic/scatter_funding_vs_close.png"
+        }
+    }
 }

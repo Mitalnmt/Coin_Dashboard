@@ -22,11 +22,12 @@ def health():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    """Accepts: { "message": "text", "history": [ {role, content}, ... ]? }"""
+    """Accepts: { "message": "text", "history": [ {role, content}, ... ]?, "attachments": [...]? }"""
     try:
         data = request.get_json(force=True) or {}
         user_message = (data.get("message") or "").strip()
         history = data.get("history") or []  # optional array of {role, content}
+        attachments = data.get("attachments") or []  # optional array of file/image attachments
 
         if not user_message:
             return jsonify(error="message is required"), 400
@@ -37,7 +38,44 @@ def chat():
         for m in history:
             if isinstance(m, dict) and m.get("role") in ("system", "user", "assistant") and m.get("content"):
                 messages.append({"role": m["role"], "content": m["content"]})
-        messages.append({"role": "user", "content": user_message})
+        
+        # Build user message with attachments if any
+        user_content = []
+        
+        # Add text message
+        if user_message:
+            user_content.append({"type": "text", "text": user_message})
+        
+        # Add image attachments
+        for att in attachments:
+            if att.get("type") == "image" and att.get("data"):
+                # Extract base64 data (remove data:image/...;base64, prefix if present)
+                image_data = att["data"]
+                if "," in image_data:
+                    image_data = image_data.split(",", 1)[1]
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/{att.get('mimeType', 'jpeg').split('/')[-1]};base64,{image_data}"
+                    }
+                })
+            elif att.get("type") == "file" and att.get("content"):
+                # For text files, append content to message text
+                file_content = att["content"]
+                file_name = att.get("name", "file")
+                # Limit file content preview to avoid token limits
+                if len(file_content) > 10000:
+                    file_content = file_content[:10000] + "\n\n[File truncated - showing first 10000 characters]"
+                user_content.append({
+                    "type": "text",
+                    "text": f"\n\n[File: {file_name}]\n{file_content}"
+                })
+        
+        # If only text, use simple format; otherwise use content array
+        if len(user_content) == 1 and user_content[0]["type"] == "text":
+            messages.append({"role": "user", "content": user_content[0]["text"]})
+        else:
+            messages.append({"role": "user", "content": user_content})
 
         payload = {
             "model": OLLAMA_MODEL,

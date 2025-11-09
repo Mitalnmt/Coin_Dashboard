@@ -1,0 +1,42 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ai-backend-flask/venv/
+
+# VS Code settings
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment & secrets
+*.env
+.env.*
+
+# Logs
+*.log
+
+# Flask instance and DB files
+instance/
+*.sqlite3
+*.db
+
+# Build / distribution
+build/
+dist/
+*.egg-info/
+
+# Temporary / cache folders
+tmp/
+.cache/

@@ -51,7 +51,6 @@ to deliver a complete data-driven analytics experience.
 | 📊 **Indicators** | RSI, MACD, volatility, sentiment, and Google Trends integration. |
 | 🤖 **AI Chatbot** | DeepSeek R1 (Ollama) or Gemini API for natural-language Q&A and predictions. |
 | 🖼️ **Image Upload & Vision** | Upload chart/news images for AI-based analysis (OCR & pattern recognition). |
-| 🔮 **Forecast Models** | Naïve, EWMA, Prophet, ARIMA/SARIMAX, and LSTM/GRU models for prediction. |
 | 🧠 **Data Pipeline** | Celery collectors fetch price, sentiment, and trend data into TimescaleDB. |
 | 💾 **Persistent Storage** | Time-series data stored in TimescaleDB, cached in Redis for fast access. |
 | 💬 **Chat History** | User sessions and chat logs (optional, for future analytics). |
@@ -173,7 +172,6 @@ Services will start:
  │    ├── index.html         # Home page
  │    ├── chart.html         # Chart page
  │    ├── chatbot.html       # AI Chatbot interface
- │    ├── forecast.html      # Forecast page
  │    └── assets/
  │         └── css/
  │              └── style.css
@@ -203,7 +201,6 @@ Services will start:
 |-----------|---------|-------------|
 | `/api/chart-data` | GET | Get Bitcoin OHLCV data (JSON) |
 | `/ws/price` | WS | Realtime price stream |
-| `/api/forecast` | POST | Predict future price using selected model |
 | `/api/chat` | POST | Chatbot (DeepSeek / Gemini) |
 | `/api/upload-image` | POST | Upload image for vision analysis |
 | `/health` | GET | Health check |
@@ -216,8 +213,6 @@ Services will start:
 # Get chart data
 curl http://localhost:8000/api/chart-data
 
-# Request forecast
-curl -X POST http://localhost:8000/api/forecast?horizon=1h
 ```
 
 ---

@@ -3,71 +3,484 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Charts - BTC Dash</title>
+    <title>Charts - Coin Dash</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
+    * {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0b0e11 0%, #1a1f2e 100%);
+      color: #e5e7eb;
+      min-height: 100vh;
+    }
+
+    /* Hero Section */
+    .chart-hero {
+      text-align: center;
+      padding: 35px 20px 25px;
+      margin-bottom: 35px;
+      position: relative;
+      overflow: hidden;
+      max-width: 1400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .chart-hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #22c55e, transparent);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    main.container h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #22c55e 0%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .chart-hero p {
+      color: #9ca3af;
+      font-size: 1rem;
+      margin-top: 6px;
+    }
+
+    /* Filter Buttons */
+    .filter-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 35px;
+      padding: 0 20px;
+      max-width: 1400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .filter-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1.5px solid transparent;
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+      color: #9ca3af;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .filter-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .filter-btn:hover::before {
+      left: 100%;
+    }
+
+    .filter-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      border-color: #374151;
+      color: #e5e7eb;
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+      border-color: #22c55e;
+      box-shadow: 0 3px 12px rgba(34, 197, 94, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .filter-btn.active:hover {
+      box-shadow: 0 4px 16px rgba(34, 197, 94, 0.45);
+      transform: translateY(-2px);
+    }
+
+    /* Container Improvements */
+    main.container {
+      max-width: 1400px;
+      padding: 0 24px 40px;
+    }
+
+    /* Chart Sections */
+    #chart-gallery {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    #chart-gallery section {
+      margin-bottom: 50px;
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    main.container h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 24px 0;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(96, 165, 250, 0.08) 100%);
+      border-left: 3px solid #22c55e;
+      border-radius: 8px;
+      color: #f3f4f6;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Grid Layout for Charts */
     .chart-row {
-      display: block; /* single column feed */
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 24px;
       margin-bottom: 40px;
     }
+
     .chart-item {
-      background: #111827;
+      background: linear-gradient(135deg, #111827 0%, #1a1f2e 100%);
       border: 1px solid #374151;
       border-radius: 12px;
-      padding: 12px;
-      max-width: 960px;            /* large readable width */
-      margin: 0 auto 24px auto;    /* center each post-like card */
+      padding: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
+
+    .chart-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #22c55e, #60a5fa, #22c55e);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .chart-item:hover {
+      transform: translateY(-3px);
+      border-color: #22c55e;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .chart-item:hover::before {
+      opacity: 1;
+    }
+
     .chart-item img {
       width: 100%;
       height: auto;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
       display: block;
+      background: #0b0e11;
+      aspect-ratio: 16 / 9;
+      object-fit: contain;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
+
     .chart-item img:hover {
       transform: scale(1.02);
-      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
     }
+
     .chart-item figcaption {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #e5e7eb;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #d1d5db;
       text-align: center;
+      font-weight: 500;
+      padding: 10px 8px;
+      background: rgba(34, 197, 94, 0.04);
+      border-radius: 6px;
+      border: 1px solid rgba(34, 197, 94, 0.08);
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.4;
     }
-    main.container h1 {
+
+    /* Loading State */
+    .loading-state {
       text-align: center;
-      margin-top: 30px;
-      color: #e5e7eb;
+      padding: 60px 20px;
+      color: #9ca3af;
+      font-size: 1.1rem;
     }
-    main.container h2 {
-      margin: 32px auto 16px auto;
-      padding-left: 0;
-      border-left: none;
-      color: #f3f4f6;
-      max-width: 960px;
+
+    .loading-spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(34, 197, 94, 0.2);
+      border-top-color: #22c55e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
     }
-    body {
-      background: #0b0e11;
-      color: #e5e7eb;
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
+
+    /* Error State */
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #ef4444;
+      font-size: 1.1rem;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 12px;
+      max-width: 600px;
+      margin: 40px auto;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    /* Modal */
     .modal {
       display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.8);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.95);
+      backdrop-filter: blur(10px);
       justify-content: center;
       align-items: center;
       z-index: 9999;
+      animation: fadeIn 0.3s ease-out;
     }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 40px;
+      color: white;
+      cursor: pointer;
+      z-index: 10000;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .modal-close:hover {
+      background: rgba(239, 68, 68, 0.8);
+      transform: rotate(90deg);
+    }
+
     .modal img {
-      max-width: 90%;
-      max-height: 90%;
-      border-radius: 10px;
+      max-width: 95%;
+      max-height: 95%;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      animation: zoomIn 0.3s ease-out;
+    }
+
+    @keyframes zoomIn {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #6b7280;
+    }
+
+    .empty-state svg {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 24px;
+      opacity: 0.5;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .chart-row {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      main.container {
+        padding: 0 16px 30px;
+      }
+
+      main.container h1 {
+        font-size: 2rem;
+      }
+
+      main.container h2 {
+        font-size: 1.3rem;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+      }
+
+      .filter-btn {
+        padding: 10px 18px;
+        font-size: 13px;
+      }
+
+      .chart-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .chart-item {
+        padding: 14px;
+      }
+
+      .chart-item figcaption {
+        font-size: 12px;
+        padding: 8px 6px;
+      }
+
+      .modal-close {
+        top: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        font-size: 30px;
+      }
+
+      .chart-hero {
+        padding: 30px 16px 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .chart-row {
+        gap: 12px;
+      }
+
+      .chart-item {
+        padding: 12px;
+      }
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0b0e11;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #22c55e;
+    }
+
+    /* Footer Styling */
+    footer {
+      background: linear-gradient(135deg, #111827 0%, #0b0e11 100%);
+      border-top: 1px solid #374151;
+      padding: 24px 20px;
+      margin-top: 60px;
+      text-align: center;
+    }
+
+    footer p {
+      color: #6b7280;
+      font-size: 14px;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    /* Smooth transitions for all interactive elements */
+    * {
+      transition-property: color, background-color, border-color, transform, box-shadow, opacity;
+      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Focus states for accessibility */
+    .filter-btn:focus {
+      outline: 2px solid #22c55e;
+      outline-offset: 2px;
+    }
+
+    .chart-item:focus-within {
+      outline: 2px solid #22c55e;
+      outline-offset: 4px;
+      border-radius: 12px;
     }
     </style>
 </head>
@@ -75,102 +488,169 @@
     <!-- Header -->
     <header>
         <nav class="navbar">
-            <a href="index.html" class="logo">BTC Dash</a>
+            <a href="index.html" class="logo">Coin Dash</a>
             <ul class="nav-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="dashboard.html">Dashboard</a></li>
                 <li><a href="chart.html" class="active">Charts</a></li>
                 <li><a href="chatbot.html">Chatbot</a></li>
-                <li><a href="forecast.html">Forecast</a></li>
             </ul>
         </nav>
     </header>
 
     <!-- Main Content -->
     <main class="container">
-        <h1>📈 Crypto Chart Gallery</h1>
+        <div class="chart-hero">
+            <h1>📈 Crypto Chart Gallery</h1>
+            <p>Explore comprehensive cryptocurrency analytics and market insights</p>
+        </div>
 
-        <div class="flex flex-wrap gap-3 mb-4">
-            <button id="btn-ALL" onclick="filterGallery('ALL')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">ALL</button>
-            <button id="btn-BTC" onclick="filterGallery('BTC')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">BTC</button>
-            <button id="btn-ETH" onclick="filterGallery('ETH')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">ETH</button>
-            <button id="btn-BNB" onclick="filterGallery('BNB')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">BNB</button>
-            <button id="btn-SOL" onclick="filterGallery('SOL')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">SOL</button>
-            <button id="btn-XRP" onclick="filterGallery('XRP')" class="px-6 py-2 rounded-lg font-semibold bg-[#1f2937] text-gray-300 hover:bg-[#374151]">XRP</button>
+        <div class="filter-container">
+            <button id="btn-ALL" onclick="filterGallery('ALL')" class="filter-btn active">🌐 ALL</button>
+            <button id="btn-BTC" onclick="filterGallery('BTC')" class="filter-btn">₿ BTC</button>
+            <button id="btn-ETH" onclick="filterGallery('ETH')" class="filter-btn">Ξ ETH</button>
+            <button id="btn-BNB" onclick="filterGallery('BNB')" class="filter-btn">🔶 BNB</button>
+            <button id="btn-SOL" onclick="filterGallery('SOL')" class="filter-btn">◎ SOL</button>
+            <button id="btn-XRP" onclick="filterGallery('XRP')" class="filter-btn">💧 XRP</button>
         </div>
 
         <div id="chart-gallery"></div>
-        <div id="img-modal" class="modal" onclick="this.style.display='none'">
-            <img id="modal-img">
+        <div id="img-modal" class="modal">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <img id="modal-img" alt="Chart preview">
         </div>
     </main>
 
     <!-- Footer -->
     <footer>
-        <p>Mock UI — HTML-only scaffold</p>
+        <p>Code by Mital</p>
     </footer>
 </body>
 <script>
+function openModal(imgSrc) {
+  const modal = document.getElementById("img-modal");
+  const modalImg = document.getElementById("modal-img");
+  modal.classList.add("active");
+  modalImg.src = imgSrc;
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  const modal = document.getElementById("img-modal");
+  modal.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
 document.addEventListener("click", e => {
   if (e.target.tagName === "IMG" && e.target.closest(".chart-row")) {
-    const modal = document.getElementById("img-modal");
-    const modalImg = document.getElementById("modal-img");
-    modal.style.display = "flex";
-    modalImg.src = e.target.src;
+    openModal(e.target.src);
+  }
+  if (e.target.id === "img-modal" && e.target.classList.contains("modal")) {
+    closeModal();
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    closeModal();
   }
 });
 
 async function loadChartGallery() {
   const galleryContainer = document.getElementById("chart-gallery");
   if (!galleryContainer) return;
-  galleryContainer.innerHTML = "<p>⏳ Đang tải biểu đồ...</p>";
-  try {
-    const res = await fetch("../data/picture/manifest.json");
-    const manifest = await res.json();
-    galleryContainer.innerHTML = "";
+  galleryContainer.innerHTML = `
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Đang tải biểu đồ...</p>
+    </div>
+  `;
 
-    const formatChartName = (file) => {
-      const base = file.replace(/\.(png|jpg|jpeg|gif|webp)$/i, "");
-      return base.replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    };
+  // Try multiple possible paths for GitHub Pages/local
+  const possiblePaths = [
+    "../data/picture/manifest.json",
+    "data/picture/manifest.json",
+    "/data/picture/manifest.json",
+    "/BTC_Dashboard-main/data/picture/manifest.json",
+    "/BTC_BIT-main/data/picture/manifest.json"
+  ];
 
-    if (manifest["GLOBAL"]) {
+  const formatChartName = (file) => {
+    const base = file.replace(/\.(png|jpg|jpeg|gif|webp)$/i, "");
+    return base.replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  let manifest = null;
+  for (const path of possiblePaths) {
+    try {
+      const res = await fetch(path, { cache: "no-store" });
+      if (!res.ok) continue;
+      manifest = await res.json();
+      break;
+    } catch (_) {
+      // try next path
+    }
+  }
+
+  if (!manifest) {
+    galleryContainer.innerHTML = `
+      <div class="error-state">
+        <p>⚠️ Không thể tải dữ liệu biểu đồ. Vui lòng thử lại sau.</p>
+      </div>
+    `;
+    return;
+  }
+
+  galleryContainer.innerHTML = "";
+
+  // Optional GLOBAL section: accept either array of filenames or array of paths
+  if (manifest["GLOBAL"]) {
+    const globalFiles = Array.isArray(manifest["GLOBAL"]) ? manifest["GLOBAL"] : [];
+    if (globalFiles.length) {
       const globalSection = document.createElement("section");
       globalSection.setAttribute("data-section-symbol", "GLOBAL");
       globalSection.innerHTML = `
         <h2>🌍 Global Market Overview</h2>
         <div class="chart-row">
-          ${manifest["GLOBAL"].map(file => `
-            <figure class="chart-item">
-              <img src="../data/picture/${file}" alt="${file}" loading="lazy">
-              <figcaption>${formatChartName(file)}</figcaption>
-            </figure>
-          `).join("")}
+          ${globalFiles.map(file => {
+            const src = file.startsWith("http") ? file : (file.startsWith("../") ? file : `../data/picture/${file}`);
+            return `
+              <figure class="chart-item">
+                <img src="${src}" alt="${file}" loading="lazy">
+                <figcaption>${formatChartName(file)}</figcaption>
+              </figure>`;
+          }).join("")}
         </div>
       `;
       galleryContainer.appendChild(globalSection);
     }
-    Object.keys(manifest).forEach(symbol => {
-      if (symbol === "GLOBAL") return;
-      const section = document.createElement("section");
-      section.setAttribute("data-section-symbol", symbol);
-      section.innerHTML = `
-        <h2>💰 ${symbol} Charts</h2>
-        <div class="chart-row">
-          ${manifest[symbol].map(file => `
-            <figure class="chart-item">
-              <img src="../data/${symbol}/pic/${file}" alt="${symbol}-${file}" loading="lazy">
-              <figcaption>${formatChartName(file)}</figcaption>
-            </figure>
-          `).join("")}
-        </div>
-      `;
-      galleryContainer.appendChild(section);
-    });
-  } catch (err) {
-    console.error("❌ Lỗi khi tải manifest:", err);
-    galleryContainer.innerHTML = "<p>⚠️ Không thể tải dữ liệu biểu đồ.</p>";
   }
+
+  // New manifest structure: { SYMBOL: { charts: { key: "data/SYMBOL/pic/....png", ... } } }
+  Object.keys(manifest).forEach(symbol => {
+    if (symbol === "GLOBAL") return;
+    const chartsObj = manifest[symbol]?.charts;
+    if (!chartsObj) return;
+    const chartPaths = Object.values(chartsObj);
+    if (chartPaths.length === 0) return;
+
+    const section = document.createElement("section");
+    section.setAttribute("data-section-symbol", symbol);
+    section.innerHTML = `
+      <h2>💰 ${symbol} Charts</h2>
+      <div class="chart-row">
+        ${chartPaths.map(p => {
+          const src = p.startsWith("http") ? p : (p.startsWith("../") ? p : `../${p}`);
+          return `
+            <figure class="chart-item">
+              <img src="${src}" alt="${symbol}" loading="lazy">
+              <figcaption>${formatChartName(p.split('/').pop() || p)}</figcaption>
+            </figure>`;
+        }).join("")}
+      </div>
+    `;
+    galleryContainer.appendChild(section);
+  });
 }
 document.addEventListener("DOMContentLoaded", async () => {
   await loadChartGallery();
@@ -182,7 +662,8 @@ function filterGallery(symbol) {
   sections.forEach(sec => {
     const secSymbol = sec.getAttribute('data-section-symbol');
     if (symbol === 'ALL') {
-      sec.style.display = secSymbol === 'GLOBAL' ? '' : 'none';
+      // Show all sections when ALL is chosen (GLOBAL is optional)
+      sec.style.display = '';
     } else {
       sec.style.display = secSymbol === symbol ? '' : 'none';
     }
@@ -193,11 +674,9 @@ function filterGallery(symbol) {
     const btn = document.getElementById(`btn-${s}`);
     if (!btn) return;
     if (s === symbol) {
-      btn.classList.add('bg-green-500','text-white');
-      btn.classList.remove('bg-[#1f2937]','text-gray-300');
+      btn.classList.add('active');
     } else {
-      btn.classList.remove('bg-green-500','text-white');
-      btn.classList.add('bg-[#1f2937]','text-gray-300');
+      btn.classList.remove('active');
     }
   });
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Dashboard - Multi-Symbol Analytics</title>
+    <title>Crypto Coin Dashboard</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -65,13 +65,12 @@
     <!-- Header -->
     <header>
         <nav class="navbar">
-            <a href="index.html" class="logo">BTC Dash</a>
+            <a href="index.html" class="logo">Coin Dash</a>
             <ul class="nav-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="dashboard.html" class="active">Dashboard</a></li>
                 <li><a href="chart.html">Charts</a></li>
                 <li><a href="chatbot.html">Chatbot</a></li>
-                <li><a href="forecast.html">Forecast</a></li>
             </ul>
         </nav>
     </header>
@@ -187,7 +186,7 @@
 
     <!-- Footer -->
     <footer>
-        <p>Multi-Symbol Crypto Dashboard — Live Data</p>
+        <p>Code by Mital</p>
     </footer>
 
     <script>
@@ -301,27 +300,43 @@
             // Special handling for 1 day: show last 2 days (yesterday to today/latest)
             let filteredData;
             if (currentTimeRange === 1) {
-                // Take last 2 days for 1 day view to show price change
-                const daysToShow = Math.min(2, symbolData.length);
-                filteredData = symbolData.slice(-daysToShow);
+                // Take last 2 data points for 24h comparison
+                const pointsToShow = Math.min(2, symbolData.length);
+                filteredData = symbolData.slice(-pointsToShow);
             } else {
-                // For other time ranges, take last N days
-                const daysToShow = Math.min(currentTimeRange, symbolData.length);
-                filteredData = symbolData.slice(-daysToShow);
+                // For other ranges, filter by calendar period ending at the latest date
+                const lastDate = new Date(symbolData[symbolData.length - 1].Date);
+                const startDate = new Date(lastDate);
+                startDate.setDate(startDate.getDate() - (currentTimeRange - 1));
+                filteredData = symbolData.filter(d => {
+                    const dt = new Date(d.Date);
+                    return dt >= startDate && dt <= lastDate;
+                });
+                // Fallback: if filter is empty (bad dates), keep last N rows
+                if (filteredData.length === 0) {
+                    const pointsToShow = Math.min(currentTimeRange, symbolData.length);
+                    filteredData = symbolData.slice(-pointsToShow);
+                }
             }
             
             // Update date range info
             if (filteredData.length > 0) {
-                const firstDate = new Date(filteredData[0].Date).toLocaleDateString();
-                const lastDate = new Date(filteredData[filteredData.length - 1].Date).toLocaleDateString();
+                const firstDateObj = new Date(filteredData[0].Date);
+                const lastDateObj = new Date(filteredData[filteredData.length - 1].Date);
+                const firstDate = firstDateObj.toLocaleDateString();
+                const lastDate = lastDateObj.toLocaleDateString();
                 
-                // For 1 day view, show different info
+                // Determine label by selected period
+                const periodLabels = { 7: '7 days', 30: '30 days', 90: '90 days', 180: '180 days', 365: '1 year' };
                 if (currentTimeRange === 1 && filteredData.length === 2) {
                     document.getElementById('dateRangeInfo').textContent = 
                         `${firstDate} - ${lastDate} (24h change)`;
+                } else if (periodLabels[currentTimeRange]) {
+                    document.getElementById('dateRangeInfo').textContent = 
+                        `${firstDate} - ${lastDate} (${periodLabels[currentTimeRange]})`;
                 } else {
                     document.getElementById('dateRangeInfo').textContent = 
-                        `${firstDate} - ${lastDate} (${filteredData.length} days)`;
+                        `${firstDate} - ${lastDate} (${filteredData.length} days of data)`;
                 }
             }
             
