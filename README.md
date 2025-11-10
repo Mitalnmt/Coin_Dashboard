@@ -1,5 +1,5 @@
-# [📄 Report (.docx)]( )  
-# [🎞️ Slide (.pptx)]( )  
+# [📄 Report (.docx)](report/DAP391m Report.pdf)  
+# [🎞️ Slide (.pptx)](https://github.com/Mitalnmt/Coin_Dashboard/blob/0bb71f2d67c22b291bb50c5f67e78133bbeed66e/report/DAP391m.pptx)  
 
 ---
 
