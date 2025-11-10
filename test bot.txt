@@ -1,3 +1,14 @@
+ollama serve
+
+cd ai-backend-flask
+python -m venv venv
+venv\Scripts\activate
+copy env.example .env
+python app.py
+
+ngrok http 5000
+
+
 1) Chạy Ollama (bắt buộc)
 Mở PowerShell 1:
 Kiểm tra model: ollama list

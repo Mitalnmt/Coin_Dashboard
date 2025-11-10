@@ -13,4 +13,4 @@ echo   chatbot:     http://localhost:8000/frontend/chatbot.html
 echo.
 echo Press Ctrl+C to stop the server
 echo.
-"C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe" -m http.server 8000
+"C:\Python312\python.exe" -m http.server 8000
