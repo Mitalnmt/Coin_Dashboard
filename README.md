@@ -1,4 +1,4 @@
-# [📄 Report (.docx)](report/DAP391m Report.pdf)  
+# [📄 Report (.docx)](https://github.com/Mitalnmt/Coin_Dashboard/blob/43abbdecc0cba89a1b2b4264bee2ebc7572e0670/report/DAP391m%20Report.pdf)  
 # [🎞️ Slide (.pptx)](https://github.com/Mitalnmt/Coin_Dashboard/blob/0bb71f2d67c22b291bb50c5f67e78133bbeed66e/report/DAP391m.pptx)  
 
 ---
